@@ -1,34 +1,83 @@
+// src/pages/CountryPage.js
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { Link, useParams } from "react-router-dom";
-
-const countries = ["trung-quoc","han-quoc","nhat-ban","thai-lan","au-my","viet-nam","hong-kong","an-do","anh","phap"];
+import { Link, useParams, useNavigate } from "react-router-dom";
 
 function CountryPage() {
   const { country } = useParams();
-  const [movies, setMovies] = useState([]);
+  const navigate = useNavigate();
 
+  const [movies, setMovies] = useState([]);
+  const [countries, setCountries] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  // load danh sách quốc gia
   useEffect(() => {
-    axios.get(`https://phimapi.com/v1/api/danh-sach/phim-bo?page=1&country=${country}`)
+    axios.get("https://phimapi.com/quoc-gia")
+      .then(res => setCountries(res.data))
+      .catch(() => setCountries([]));
+  }, []);
+
+  // load phim theo quốc gia
+  useEffect(() => {
+    if (!country) return;
+
+    setLoading(true);
+
+    axios
+      .get(`https://phimapi.com/v1/api/quoc-gia/${country}?page=1`)
       .then(res => {
-        if (res.data && res.data.items) setMovies(res.data.items);
-      });
+        setMovies(res.data.data.items || []);
+      })
+      .catch(() => setMovies([]))
+      .finally(() => setLoading(false));
   }, [country]);
 
   return (
-    <div>
+    <div className="container">
       <h2>Quốc gia: {country}</h2>
-      <select onChange={e => window.location.href=`/country/${e.target.value}`}>
+
+      <select
+        value={country || ""}
+        onChange={e => navigate(`/country/${e.target.value}`)}
+      >
         <option value="">--Chọn quốc gia--</option>
-        {countries.map(c => <option key={c} value={c}>{c}</option>)}
-      </select>
-      <ul>
-        {movies.map(m => (
-          <li key={m._id}>
-            <Link to={`/movie/${m.slug}`}>{m.name}</Link>
-          </li>
+        {countries.map(c => (
+          <option key={c._id} value={c.slug}>
+            {c.name}
+          </option>
         ))}
-      </ul>
+      </select>
+
+      {loading && <p>Đang tải...</p>}
+
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fill, 150px)",
+          gap: 15,
+          marginTop: 15
+        }}
+      >
+        {movies.map(m => (
+          <Link
+            key={m._id}
+            to={`/movie/${m.slug}`}
+            style={{ textDecoration: "none", color: "inherit" }}
+          >
+            <div>
+              <img
+                src={`https://phimimg.com/${m.poster_url}`}
+                alt={m.name}
+                width="150"
+                style={{ borderRadius: 6 }}
+              />
+              <div><b>{m.name}</b></div>
+              <div>{m.year} • {m.quality}</div>
+            </div>
+          </Link>
+        ))}
+      </div>
     </div>
   );
 }
