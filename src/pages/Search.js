@@ -1,76 +1,73 @@
-// src/pages/Search.js
 import React, { useState } from "react";
 import axios from "axios";
 import { Link } from "react-router-dom";
 
+import {
+  Container,
+  TextField,
+  Button,
+  Grid,
+  Card,
+  CardMedia,
+  CardContent,
+  Typography
+} from "@mui/material";
+
 function Search() {
   const [keyword, setKeyword] = useState("");
   const [results, setResults] = useState([]);
-  const [loading, setLoading] = useState(false);
 
   const handleSearch = async () => {
-    if (!keyword.trim()) return;
+    const res = await axios.get(
+      `https://phimapi.com/v1/api/tim-kiem?keyword=${keyword}`
+    );
 
-    try {
-      setLoading(true);
-
-      const res = await axios.get(
-        `https://phimapi.com/v1/api/tim-kiem?keyword=${encodeURIComponent(
-          keyword
-        )}&page=1`
-      );
-
-      // ✅ dữ liệu đúng nằm ở đây
-      setResults(res.data.data.items || []);
-    } catch (err) {
-      console.error("Search error:", err);
-      setResults([]);
-    } finally {
-      setLoading(false);
-    }
+    setResults(res.data.data.items || []);
   };
 
   return (
-    <div className="container">
-      <h2>Tìm kiếm phim</h2>
+    <Container sx={{ mt: 3 }}>
+      <Typography variant="h5" gutterBottom>
+        Tìm kiếm phim
+      </Typography>
 
-      <div style={{ marginBottom: 12 }}>
-        <input
-          value={keyword}
-          placeholder="Nhập tên phim..."
-          onChange={(e) => setKeyword(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-        />
-        <button onClick={handleSearch}>Tìm</button>
-      </div>
+      <TextField
+        fullWidth
+        label="Nhập tên phim"
+        value={keyword}
+        onChange={e => setKeyword(e.target.value)}
+      />
 
-      {loading && <p>Đang tìm...</p>}
+      <Button
+        variant="contained"
+        sx={{ mt: 2 }}
+        onClick={handleSearch}
+      >
+        Tìm
+      </Button>
 
-      {!loading && results.length === 0 && <p>Không có kết quả</p>}
+      <Grid container spacing={2} sx={{ mt: 2 }}>
+        {results.map(movie => (
+          <Grid item xs={6} sm={4} md={3} key={movie._id}>
+            <Card>
+              <Link to={`/movie/${movie.slug}`}>
+                <CardMedia
+                  component="img"
+                  height="260"
+                  image={`https://phimimg.com/${movie.poster_url}`}
+                />
+              </Link>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, 150px)", gap: 15 }}>
-        {results.map((r) => (
-          <Link
-            key={r._id}
-            to={`/movie/${r.slug}`}
-            style={{ textDecoration: "none", color: "inherit" }}
-          >
-            <div>
-              <img
-                src={`https://phimimg.com/${r.poster_url}`}
-                alt={r.name}
-                width="150"
-                style={{ borderRadius: 6 }}
-              />
-              <div>
-                <b>{r.name}</b>
-              </div>
-              <div>{r.year} • {r.quality}</div>
-            </div>
-          </Link>
+              <CardContent>
+                <Typography variant="body2">
+                  {movie.name}
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
         ))}
-      </div>
-    </div>
+      </Grid>
+    </Container>
   );
 }
 
