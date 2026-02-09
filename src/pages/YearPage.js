@@ -20,7 +20,7 @@ function YearPage() {
     axios
       .get(`https://phimapi.com/v1/api/nam/${year}?page=1`)
       .then(res => {
-        setMovies(res.data.data.items || []);
+        setMovies(res.data?.data?.items || []);
       })
       .catch(() => setMovies([]))
       .finally(() => setLoading(false));
@@ -28,8 +28,9 @@ function YearPage() {
 
   return (
     <div className="container">
-      <h2>Năm: {year}</h2>
+      <h2>Năm phát hành: {year}</h2>
 
+      {/* Chọn năm */}
       <select
         value={year || ""}
         onChange={(e) => navigate(`/year/${e.target.value}`)}
@@ -44,10 +45,12 @@ function YearPage() {
 
       {loading && <p>Đang tải...</p>}
 
+      {/* Grid phim */}
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, 150px)",
+          gridTemplateColumns:
+            "repeat(auto-fill, minmax(150px, 1fr))",
           gap: 15,
           marginTop: 15
         }}
@@ -60,13 +63,26 @@ function YearPage() {
           >
             <div>
               <img
-                src={`https://phimimg.com/${m.poster_url}`}
+                src={
+                  m.poster_url
+                    ? `https://phimimg.com/${m.poster_url}`
+                    : "/no-image.jpg"
+                }
                 alt={m.name}
-                width="150"
-                style={{ borderRadius: 6 }}
+                style={{
+                  width: "100%",
+                  borderRadius: 6,
+                  objectFit: "cover"
+                }}
               />
-              <div><b>{m.name}</b></div>
-              <div>{m.year} • {m.quality}</div>
+
+              <div style={{ marginTop: 5 }}>
+                <b>{m.name}</b>
+              </div>
+
+              <div style={{ fontSize: 13, opacity: 0.8 }}>
+                {m.year} • {m.quality}
+              </div>
             </div>
           </Link>
         ))}
