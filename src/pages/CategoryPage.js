@@ -3,6 +3,19 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { Link, useParams, useNavigate } from "react-router-dom";
 
+import {
+  Container,
+  Typography,
+  Select,
+  MenuItem,
+  Grid,
+  Card,
+  CardMedia,
+  CardContent,
+  CircularProgress,
+  Box
+} from "@mui/material";
+
 function CategoryPage() {
   const { category } = useParams();
   const navigate = useNavigate();
@@ -14,7 +27,7 @@ function CategoryPage() {
   // load danh sách thể loại
   useEffect(() => {
     axios.get("https://phimapi.com/the-loai")
-      .then(res => setCategories(res.data))
+      .then(res => setCategories(res.data || []))
       .catch(() => setCategories([]));
   }, []);
 
@@ -34,51 +47,65 @@ function CategoryPage() {
   }, [category]);
 
   return (
-    <div className="container">
-      <h2>Thể loại: {category}</h2>
+    <Container sx={{ mt: 3 }}>
+      <Typography variant="h5" gutterBottom>
+        Thể loại: {category}
+      </Typography>
 
-      <select
+      {/* Dropdown chọn thể loại */}
+      <Select
+        fullWidth
         value={category || ""}
-        onChange={e => navigate(`/category/${e.target.value}`)}
+        onChange={e =>
+          navigate(`/category/${e.target.value}`)
+        }
       >
-        <option value="">--Chọn thể loại--</option>
+        <MenuItem value="">--Chọn thể loại--</MenuItem>
+
         {categories.map(c => (
-          <option key={c._id} value={c.slug}>
+          <MenuItem key={c._id} value={c.slug}>
             {c.name}
-          </option>
+          </MenuItem>
         ))}
-      </select>
+      </Select>
 
-      {loading && <p>Đang tải...</p>}
+      {/* Loading */}
+      {loading && (
+        <Box sx={{ textAlign: "center", mt: 3 }}>
+          <CircularProgress />
+        </Box>
+      )}
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, 150px)",
-          gap: 15,
-          marginTop: 15
-        }}
-      >
+      {/* Danh sách phim */}
+      <Grid container spacing={2} sx={{ mt: 2 }}>
         {movies.map(m => (
-          <Link
-            key={m._id}
-            to={`/movie/${m.slug}`}
-            style={{ textDecoration: "none", color: "inherit" }}
-          >
-            <div>
-              <img
-                src={`https://phimimg.com/${m.poster_url}`}
-                alt={m.name}
-                width="150"
-                style={{ borderRadius: 6 }}
-              />
-              <div><b>{m.name}</b></div>
-              <div>{m.year} • {m.quality}</div>
-            </div>
-          </Link>
+          <Grid item xs={6} sm={4} md={3} lg={2} key={m._id}>
+            <Card>
+              <Link to={`/movie/${m.slug}`}>
+                <CardMedia
+                  component="img"
+                  height="250"
+                  image={`https://phimimg.com/${m.poster_url}`}
+                />
+              </Link>
+
+              <CardContent>
+                <Typography variant="body2">
+                  {m.name}
+                </Typography>
+
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                >
+                  {m.year} • {m.quality}
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
         ))}
-      </div>
-    </div>
+      </Grid>
+    </Container>
   );
 }
 
