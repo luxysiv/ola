@@ -5,30 +5,22 @@ import { Link } from "react-router-dom";
 
 function Home() {
   const [movies, setMovies] = useState([]);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     axios
       .get("https://phimapi.com/danh-sach/phim-moi-cap-nhat-v3?page=1")
-      .then(res => {
-        setMovies(res.data.items || []);
-      })
-      .finally(() => setLoading(false));
+      .then(res => setMovies(res.data.items || []));
   }, []);
 
   return (
-    <div className="container">
-      <h2>🔥 Phim mới cập nhật</h2>
-
-      {loading && <p>Đang tải...</p>}
+    <div>
+      <h2>Phim mới cập nhật</h2>
 
       <div
         style={{
           display: "grid",
-          gridTemplateColumns:
-            "repeat(auto-fill, minmax(150px, 1fr))",
-          gap: 15,
-          marginTop: 15
+          gridTemplateColumns: "repeat(auto-fill, 150px)",
+          gap: 15
         }}
       >
         {movies.map(m => (
@@ -39,28 +31,15 @@ function Home() {
           >
             <div>
               <img
-                src={
-                  m.poster_url?.startsWith("http")
-                    ? m.poster_url
-                    : `https://phimimg.com/${m.poster_url}`
-                }
+                src={m.poster_url}
                 alt={m.name}
-                style={{
-                  width: "100%",
-                  borderRadius: 8,
-                  objectFit: "cover",
-                  aspectRatio: "2/3"
-                }}
-                onError={(e) => {
-                  e.target.src = "/no-image.jpg";
-                }}
+                width="150"
+                style={{ borderRadius: 6 }}
               />
-
-              <div style={{ marginTop: 6 }}>
+              <div style={{ marginTop: 5 }}>
                 <b>{m.name}</b>
               </div>
-
-              <small style={{ opacity: 0.8 }}>
+              <small>
                 {m.year} • {m.quality}
               </small>
             </div>
