@@ -1,8 +1,14 @@
-// src/pages/MovieDetail.js
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useParams } from "react-router-dom";
 import VideoPlayer from "../components/VideoPlayer";
+
+import {
+  Container,
+  Typography,
+  Button,
+  Stack
+} from "@mui/material";
 
 function MovieDetail() {
   const { slug } = useParams();
@@ -15,24 +21,13 @@ function MovieDetail() {
   useEffect(() => {
     axios.get(`https://phimapi.com/phim/${slug}`)
       .then(res => {
-        const data = res.data;
+        setMovie(res.data.movie);
+        setServers(res.data.episodes);
 
-        setMovie(data.movie || []);
-        setServers(data.episodes || []);
+        const first =
+          res.data.episodes?.[0]?.server_data?.[0];
 
-        if (data.episodes?.length > 0) {
-          const firstEp =
-            data.episodes[0].server_data?.[0];
-
-          if (firstEp) {
-            setSrc(firstEp.link_m3u8);
-          }
-        }
-      })
-      .catch(() => {
-        setMovie(null);
-        setServers([]);
-        setSrc(null);
+        if (first) setSrc(first.link_m3u8);
       });
   }, [slug]);
 
@@ -40,67 +35,56 @@ function MovieDetail() {
     servers[currentServer]?.server_data || [];
 
   return (
-    <div>
-      {/* Thông tin phim */}
+    <Container sx={{ mt: 2 }}>
       {movie && (
         <>
-          <h2>{movie.name}</h2>
-          <p>{movie.origin_name}</p>
+          <Typography variant="h5">
+            {movie.name}
+          </Typography>
+
+          <Typography variant="body2" sx={{ mb: 2 }}>
+            {movie.origin_name}
+          </Typography>
         </>
       )}
 
-      {/* Player */}
       {src && <VideoPlayer src={src} />}
 
-      {/* Danh sách server */}
-      {servers.length > 1 && (
-        <div style={{ marginTop: 15 }}>
-          <h3>Server</h3>
-          <div style={{ display: "flex", gap: 8 }}>
-            {servers.map((sv, index) => (
-              <button
-                key={index}
-                onClick={() => {
-                  setCurrentServer(index);
+      <Typography sx={{ mt: 2 }}>
+        Server
+      </Typography>
 
-                  const firstEp =
-                    sv.server_data?.[0];
-                  if (firstEp) {
-                    setSrc(firstEp.link_m3u8);
-                  }
-                }}
-              >
-                {sv.server_name}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Danh sách tập */}
-      {episodeList.length > 0 && (
-        <div style={{ marginTop: 15 }}>
-          <h3>Danh sách tập</h3>
-
-          <div
-            style={{
-              display: "flex",
-              flexWrap: "wrap",
-              gap: 8
+      <Stack direction="row" spacing={1} flexWrap="wrap">
+        {servers.map((sv, i) => (
+          <Button
+            key={i}
+            variant="outlined"
+            onClick={() => {
+              setCurrentServer(i);
+              setSrc(sv.server_data[0].link_m3u8);
             }}
           >
-            {episodeList.map((ep, i) => (
-              <button
-                key={i}
-                onClick={() => setSrc(ep.link_m3u8)}
-              >
-                {ep.name}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
+            {sv.server_name}
+          </Button>
+        ))}
+      </Stack>
+
+      <Typography sx={{ mt: 2 }}>
+        Danh sách tập
+      </Typography>
+
+      <Stack direction="row" spacing={1} flexWrap="wrap">
+        {episodeList.map((ep, i) => (
+          <Button
+            key={i}
+            variant="contained"
+            onClick={() => setSrc(ep.link_m3u8)}
+          >
+            {ep.name}
+          </Button>
+        ))}
+      </Stack>
+    </Container>
   );
 }
 
