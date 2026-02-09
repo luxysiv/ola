@@ -1,7 +1,19 @@
-// src/pages/YearPage.js
+src/pages/YearPage.js
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { Link, useParams, useNavigate } from "react-router-dom";
+import {
+  Container,
+  Typography,
+  Select,
+  MenuItem,
+  Grid,
+  Card,
+  CardMedia,
+  CardContent,
+  CircularProgress,
+  Box
+} from "@mui/material";
 
 const years = Array.from({ length: 26 }, (_, i) => 2000 + i);
 
@@ -14,7 +26,6 @@ function YearPage() {
 
   useEffect(() => {
     if (!year) return;
-
     setLoading(true);
 
     axios
@@ -27,67 +38,52 @@ function YearPage() {
   }, [year]);
 
   return (
-    <div className="container">
-      <h2>Năm phát hành: {year}</h2>
+    <Container sx={{ mt: 3 }}>
+      <Typography variant="h5" gutterBottom>
+        Năm phát hành: {year}
+      </Typography>
 
-      {/* Chọn năm */}
-      <select
+      <Select
+        fullWidth
         value={year || ""}
-        onChange={(e) => navigate(`/year/${e.target.value}`)}
+        onChange={e => navigate(`/year/${e.target.value}`)}
       >
-        <option value="">--Chọn năm--</option>
+        <MenuItem value="">--Chọn năm--</MenuItem>
         {years.map(y => (
-          <option key={y} value={y}>
+          <MenuItem key={y} value={y}>
             {y}
-          </option>
+          </MenuItem>
         ))}
-      </select>
+      </Select>
 
-      {loading && <p>Đang tải...</p>}
+      {loading && (
+        <Box sx={{ textAlign: "center", mt: 3 }}>
+          <CircularProgress />
+        </Box>
+      )}
 
-      {/* Grid phim */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns:
-            "repeat(auto-fill, minmax(150px, 1fr))",
-          gap: 15,
-          marginTop: 15
-        }}
-      >
+      <Grid container spacing={2} sx={{ mt: 2 }}>
         {movies.map(m => (
-          <Link
-            key={m._id}
-            to={`/movie/${m.slug}`}
-            style={{ textDecoration: "none", color: "inherit" }}
-          >
-            <div>
-              <img
-                src={
-                  m.poster_url
-                    ? `https://phimimg.com/${m.poster_url}`
-                    : "/no-image.jpg"
-                }
-                alt={m.name}
-                style={{
-                  width: "100%",
-                  borderRadius: 6,
-                  objectFit: "cover"
-                }}
-              />
-
-              <div style={{ marginTop: 5 }}>
-                <b>{m.name}</b>
-              </div>
-
-              <div style={{ fontSize: 13, opacity: 0.8 }}>
-                {m.year} • {m.quality}
-              </div>
-            </div>
-          </Link>
+          <Grid item xs={6} sm={4} md={3} lg={2} key={m._id}>
+            <Card>
+              <Link to={`/movie/${m.slug}`}>
+                <CardMedia
+                  component="img"
+                  height="250"
+                  image={`https://phimimg.com/${m.poster_url}`}
+                />
+              </Link>
+              <CardContent>
+                <Typography variant="body2">{m.name}</Typography>
+                <Typography variant="caption" color="text.secondary">
+                  {m.year} • {m.quality}
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
         ))}
-      </div>
-    </div>
+      </Grid>
+    </Container>
   );
 }
 
