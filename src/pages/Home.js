@@ -1,7 +1,17 @@
-// src/pages/Home.js
+src/pages/Home.js
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { Link } from "react-router-dom";
+import {
+  Container,
+  Typography,
+  Grid,
+  Card,
+  CardMedia,
+  CardContent,
+  CircularProgress,
+  Box
+} from "@mui/material";
 
 function Home() {
   const [movies, setMovies] = useState([]);
@@ -13,61 +23,51 @@ function Home() {
       .then(res => {
         setMovies(res.data.items || []);
       })
+      .catch(() => setMovies([]))
       .finally(() => setLoading(false));
   }, []);
 
   return (
-    <div className="container">
-      <h2>🔥 Phim mới cập nhật</h2>
+    <Container sx={{ mt: 3 }}>
+      <Typography variant="h5" gutterBottom>
+        🔥 Phim mới cập nhật
+      </Typography>
 
-      {loading && <p>Đang tải...</p>}
+      {loading && (
+        <Box sx={{ textAlign: "center", mt: 3 }}>
+          <CircularProgress />
+        </Box>
+      )}
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns:
-            "repeat(auto-fill, minmax(150px, 1fr))",
-          gap: 15,
-          marginTop: 15
-        }}
-      >
+      <Grid container spacing={2} sx={{ mt: 2 }}>
         {movies.map(m => (
-          <Link
-            key={m._id}
-            to={`/movie/${m.slug}`}
-            style={{ textDecoration: "none", color: "inherit" }}
-          >
-            <div>
-              <img
-                src={
-                  m.poster_url?.startsWith("http")
-                    ? m.poster_url
-                    : `https://phimimg.com/${m.poster_url}`
-                }
-                alt={m.name}
-                style={{
-                  width: "100%",
-                  borderRadius: 8,
-                  objectFit: "cover",
-                  aspectRatio: "2/3"
-                }}
-                onError={(e) => {
-                  e.target.src = "/no-image.jpg";
-                }}
-              />
-
-              <div style={{ marginTop: 6 }}>
-                <b>{m.name}</b>
-              </div>
-
-              <small style={{ opacity: 0.8 }}>
-                {m.year} • {m.quality}
-              </small>
-            </div>
-          </Link>
+          <Grid item xs={6} sm={4} md={3} lg={2} key={m._id}>
+            <Card>
+              <Link to={`/movie/${m.slug}`}>
+                <CardMedia
+                  component="img"
+                  height="250"
+                  image={
+                    m.poster_url?.startsWith("http")
+                      ? m.poster_url
+                      : `https://phimimg.com/${m.poster_url}`
+                  }
+                  onError={(e) => {
+                    e.target.src = "/no-image.jpg";
+                  }}
+                />
+              </Link>
+              <CardContent>
+                <Typography variant="body2">{m.name}</Typography>
+                <Typography variant="caption" color="text.secondary">
+                  {m.year} • {m.quality}
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
         ))}
-      </div>
-    </div>
+      </Grid>
+    </Container>
   );
 }
 
