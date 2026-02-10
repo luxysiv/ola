@@ -50,9 +50,17 @@ function Header() {
           <IconButton color="inherit" edge="start" onClick={toggleDrawer}>
             <MenuIcon />
           </IconButton>
-          <Typography variant="h6" sx={{ flexGrow: 1 }}>
+
+          {/* Logo Hdophim dẫn về trang chủ */}
+          <Typography
+            variant="h6"
+            sx={{ flexGrow: 1, cursor: "pointer" }}
+            onClick={() => navigate("/")}
+          >
             Hdophim
           </Typography>
+
+          {/* Nút tìm kiếm bằng icon */}
           <IconButton color="inherit" onClick={() => navigate("/search")}>
             <SearchIcon />
           </IconButton>
