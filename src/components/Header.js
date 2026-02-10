@@ -11,18 +11,25 @@ import {
   ListItemText,
   Divider,
   Box,
-  Button
+  Button,
+  Collapse
 } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
+import ExpandLess from "@mui/icons-material/ExpandLess";
+import ExpandMore from "@mui/icons-material/ExpandMore";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
 function Header() {
   const [open, setOpen] = useState(false);
-  const navigate = useNavigate();
+  const [openCategory, setOpenCategory] = useState(false);
+  const [openCountry, setOpenCountry] = useState(false);
+  const [openYear, setOpenYear] = useState(false);
+  const [openType, setOpenType] = useState(false);
 
   const [categories, setCategories] = useState([]);
   const [countries, setCountries] = useState([]);
+  const navigate = useNavigate();
 
   useEffect(() => {
     axios.get("https://phimapi.com/the-loai")
@@ -40,15 +47,11 @@ function Header() {
     <>
       <AppBar position="static">
         <Toolbar>
-          <IconButton
-            color="inherit"
-            edge="start"
-            onClick={toggleDrawer}
-          >
+          <IconButton color="inherit" edge="start" onClick={toggleDrawer}>
             <MenuIcon />
           </IconButton>
           <Typography variant="h6" sx={{ flexGrow: 1 }}>
-            PhimAPI
+            Hdophim
           </Typography>
           <Button color="inherit" onClick={() => navigate("/search")}>
             Tìm kiếm
@@ -58,84 +61,114 @@ function Header() {
 
       <Drawer anchor="left" open={open} onClose={toggleDrawer}>
         <Box sx={{ width: 250 }} role="presentation">
+          {/* Thể loại */}
           <List>
-            <ListItem>
-              <Typography variant="subtitle1">Thể loại</Typography>
+            <ListItem button onClick={() => setOpenCategory(!openCategory)}>
+              <ListItemText primary="Thể loại" />
+              {openCategory ? <ExpandLess /> : <ExpandMore />}
             </ListItem>
-            {categories.map(c => (
-              <ListItem
-                button
-                key={c._id}
-                onClick={() => {
-                  navigate(`/category/${c.slug}`);
-                  toggleDrawer();
-                }}
-              >
-                <ListItemText primary={c.name} />
-              </ListItem>
-            ))}
+            <Collapse in={openCategory} timeout="auto" unmountOnExit>
+              <List component="div" disablePadding>
+                {categories.map(c => (
+                  <ListItem
+                    button
+                    key={c._id}
+                    onClick={() => {
+                      navigate(`/category/${c.slug}`);
+                      toggleDrawer();
+                    }}
+                  >
+                    <ListItemText primary={c.name} />
+                  </ListItem>
+                ))}
+              </List>
+            </Collapse>
           </List>
+
           <Divider />
+
+          {/* Quốc gia */}
           <List>
-            <ListItem>
-              <Typography variant="subtitle1">Quốc gia</Typography>
+            <ListItem button onClick={() => setOpenCountry(!openCountry)}>
+              <ListItemText primary="Quốc gia" />
+              {openCountry ? <ExpandLess /> : <ExpandMore />}
             </ListItem>
-            {countries.map(c => (
-              <ListItem
-                button
-                key={c._id}
-                onClick={() => {
-                  navigate(`/country/${c.slug}`);
-                  toggleDrawer();
-                }}
-              >
-                <ListItemText primary={c.name} />
-              </ListItem>
-            ))}
+            <Collapse in={openCountry} timeout="auto" unmountOnExit>
+              <List component="div" disablePadding>
+                {countries.map(c => (
+                  <ListItem
+                    button
+                    key={c._id}
+                    onClick={() => {
+                      navigate(`/country/${c.slug}`);
+                      toggleDrawer();
+                    }}
+                  >
+                    <ListItemText primary={c.name} />
+                  </ListItem>
+                ))}
+              </List>
+            </Collapse>
           </List>
+
           <Divider />
+
+          {/* Năm */}
           <List>
-            <ListItem>
-              <Typography variant="subtitle1">Năm</Typography>
+            <ListItem button onClick={() => setOpenYear(!openYear)}>
+              <ListItemText primary="Năm phát hành" />
+              {openYear ? <ExpandLess /> : <ExpandMore />}
             </ListItem>
-            {Array.from({ length: 26 }, (_, i) => 2000 + i).map(y => (
-              <ListItem
-                button
-                key={y}
-                onClick={() => {
-                  navigate(`/year/${y}`);
-                  toggleDrawer();
-                }}
-              >
-                <ListItemText primary={y} />
-              </ListItem>
-            ))}
+            <Collapse in={openYear} timeout="auto" unmountOnExit>
+              <List component="div" disablePadding>
+                {Array.from({ length: 26 }, (_, i) => 2000 + i).map(y => (
+                  <ListItem
+                    button
+                    key={y}
+                    onClick={() => {
+                      navigate(`/year/${y}`);
+                      toggleDrawer();
+                    }}
+                  >
+                    <ListItemText primary={y} />
+                  </ListItem>
+                ))}
+              </List>
+            </Collapse>
           </List>
+
           <Divider />
+
+          {/* Loại phim */}
           <List>
-            <ListItem>
-              <Typography variant="subtitle1">Loại phim</Typography>
+            <ListItem button onClick={() => setOpenType(!openType)}>
+              <ListItemText primary="Loại phim" />
+              {openType ? <ExpandLess /> : <ExpandMore />}
             </ListItem>
-            {[
-              { slug: "phim-bo", name: "Phim Bộ" },
-              { slug: "phim-le", name: "Phim Lẻ" },
-              { slug: "tv-shows", name: "TV Shows" },
-              { slug: "hoat-hinh", name: "Hoạt Hình" },
-              { slug: "phim-vietsub", name: "Phim Vietsub" },
-              { slug: "phim-thuyet-minh", name: "Phim Thuyết Minh" },
-              { slug: "phim-long-tieng", name: "Phim Lồng Tiếng" }
-            ].map(t => (
-              <ListItem
-                button
-                key={t.slug}
-                onClick={() => {
-                  navigate(`/list/${t.slug}`);
-                  toggleDrawer();
-                }}
-              >
-                <ListItemText primary={t.name} />
-              </ListItem>
-            ))}
+            <Collapse in={openType} timeout="auto" unmountOnExit>
+              <List component="div" disablePadding>
+                {[
+                  { slug: "phim-bo", name: "Phim Bộ" },
+                  { slug: "phim-le", name: "Phim Lẻ" },
+                  { slug: "tv-shows", name: "TV Shows" },
+                  { slug: "hoat-hinh", name: "Hoạt Hình" },
+                  { slug: "phim-vietsub", name: "Phim Vietsub" },
+                  { slug: "phim-thuyet-minh", name: "Phim Thuyết Minh" },
+                  { slug: "phim-long-tieng", name: "Phim Lồng Tiếng" }
+                ].map(t => (
+                  <ListItem
+                    button
+                    key={t.slug}
+                    onClick={() => {
+                      navigate(`/list/${t.slug}`);
+                      toggleDrawer();
+                    }}
+                  >
+                    <ListItemText primary={t.name} />
+                  </ListItem>
+                ))}
+              </List>
+            </Collapse>
           </List>
         </Box>
       </Drawer>
