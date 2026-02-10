@@ -1,4 +1,4 @@
-//src/pages/Home.js
+// src/pages/Home.js
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { Link } from "react-router-dom";
@@ -39,10 +39,23 @@ function Home() {
         </Box>
       )}
 
+      {!loading && movies.length === 0 && (
+        <Box sx={{ textAlign: "center", mt: 3 }}>
+          <Typography variant="body1" color="text.secondary">
+            Không có phim mới để hiển thị.
+          </Typography>
+        </Box>
+      )}
+
       <Grid container spacing={2} sx={{ mt: 2 }}>
         {movies.map(m => (
           <Grid item xs={6} sm={4} md={3} lg={2} key={m._id}>
-            <Card>
+            <Card
+              sx={{
+                transition: "0.3s",
+                "&:hover": { transform: "scale(1.05)" }
+              }}
+            >
               <Link to={`/movie/${m.slug}`}>
                 <CardMedia
                   component="img"
@@ -58,7 +71,9 @@ function Home() {
                 />
               </Link>
               <CardContent>
-                <Typography variant="body2">{m.name}</Typography>
+                <Typography variant="body2" noWrap>
+                  {m.name}
+                </Typography>
                 <Typography variant="caption" color="text.secondary">
                   {m.year} • {m.quality}
                 </Typography>
