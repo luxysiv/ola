@@ -18,3 +18,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
     <App />
   </ThemeProvider>
 );
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/service-worker.js');
+}
