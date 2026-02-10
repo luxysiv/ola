@@ -11,10 +11,10 @@ import {
   ListItemText,
   Divider,
   Box,
-  Button,
   Collapse
 } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
+import SearchIcon from "@mui/icons-material/Search";
 import ExpandLess from "@mui/icons-material/ExpandLess";
 import ExpandMore from "@mui/icons-material/ExpandMore";
 import { useNavigate } from "react-router-dom";
@@ -53,9 +53,9 @@ function Header() {
           <Typography variant="h6" sx={{ flexGrow: 1 }}>
             Hdophim
           </Typography>
-          <Button color="inherit" onClick={() => navigate("/search")}>
-            Tìm kiếm
-          </Button>
+          <IconButton color="inherit" onClick={() => navigate("/search")}>
+            <SearchIcon />
+          </IconButton>
         </Toolbar>
       </AppBar>
 
