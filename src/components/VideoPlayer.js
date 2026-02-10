@@ -1,32 +1,39 @@
 // src/components/VideoPlayer.js
 import React, { useRef, useEffect } from "react";
 import Hls from "hls.js";
-import { Card, Box } from "@mui/material";
+import { Card, Box, Typography } from "@mui/material";
 
-const VideoPlayer = ({ src }) => {
+const VideoPlayer = ({ src, title }) => {
   const videoRef = useRef(null);
 
   useEffect(() => {
     if (videoRef.current && src) {
+      const proxiedUrl = `/proxy-stream?url=${encodeURIComponent(src)}`;
+
       if (Hls.isSupported()) {
         const hls = new Hls();
-        hls.loadSource(src);
+        hls.loadSource(proxiedUrl);
         hls.attachMedia(videoRef.current);
       } else if (videoRef.current.canPlayType("application/vnd.apple.mpegurl")) {
-        videoRef.current.src = src;
+        videoRef.current.src = proxiedUrl;
       }
     }
   }, [src]);
 
   return (
     <Card sx={{ mt: 2 }}>
+      {title && (
+        <Box sx={{ p: 2 }}>
+          <Typography variant="h6">{title}</Typography>
+        </Box>
+      )}
       <Box
         sx={{
           width: "100%",
-          maxWidth: 960,       // cố định chiều rộng tối đa
+          maxWidth: 960,
           margin: "0 auto",
           bgcolor: "black",
-          aspectRatio: "16/9"  // cố định tỷ lệ khung hình
+          aspectRatio: "16/9" // cố định tỷ lệ khung hình
         }}
       >
         <video
