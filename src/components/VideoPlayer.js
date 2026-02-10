@@ -1,14 +1,9 @@
 // src/components/VideoPlayer.js
 import React, { useRef, useEffect } from "react";
 import Hls from "hls.js";
-import {
-  Card,
-  CardContent,
-  Typography,
-  Box
-} from "@mui/material";
+import { Card, Box } from "@mui/material";
 
-const VideoPlayer = ({ src, title }) => {
+const VideoPlayer = ({ src }) => {
   const videoRef = useRef(null);
 
   useEffect(() => {
@@ -25,16 +20,24 @@ const VideoPlayer = ({ src, title }) => {
 
   return (
     <Card sx={{ mt: 2 }}>
-      {title && (
-        <CardContent>
-          <Typography variant="h6">{title}</Typography>
-        </CardContent>
-      )}
-      <Box sx={{ width: "100%", bgcolor: "black" }}>
+      <Box
+        sx={{
+          width: "100%",
+          maxWidth: 960,       // cố định chiều rộng tối đa
+          margin: "0 auto",
+          bgcolor: "black",
+          aspectRatio: "16/9"  // cố định tỷ lệ khung hình
+        }}
+      >
         <video
           ref={videoRef}
           controls
-          style={{ width: "100%", borderRadius: 4 }}
+          style={{
+            width: "100%",
+            height: "100%",
+            objectFit: "contain",
+            borderRadius: 4
+          }}
         />
       </Box>
     </Card>
