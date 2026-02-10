@@ -14,9 +14,9 @@ function App() {
       <nav style={{ marginBottom: "20px" }}>
         <Link to="/">Trang chủ</Link> |{" "}
         <Link to="/search">Tìm kiếm</Link> |{" "}
-        <Link to="/category/hanh-dong">Thể loại</Link> |{" "}
-        <Link to="/country/han-quoc">Quốc gia</Link> |{" "}
-        <Link to="/year/2024">Năm</Link> |{" "}
+        <Link to="/category">Thể loại</Link> |{" "}
+        <Link to="/country/">Quốc gia</Link> |{" "}
+        <Link to="/year">Năm</Link> |{" "}
         <Link to="/list/phim-bo">Phim Bộ</Link> |{" "}
         <Link to="/list/phim-le">Phim Lẻ</Link> |{" "}
         <Link to="/list/hoat-hinh">Hoạt Hình</Link>
