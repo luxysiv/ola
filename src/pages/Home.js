@@ -10,19 +10,31 @@ import {
   Card,
   CardMedia,
   CardContent,
-  Button
+  Button,
+  Paper
 } from "@mui/material";
 
 function HorizontalSection({ title, link, movies }) {
   return (
-    <Box sx={{ mt: 4 }}>
-      <Box sx={{ display: "flex", justifyContent: "space-between", mb: 2 }}>
-        <Typography variant="h5">{title}</Typography>
-        <Button component={Link} to={link}>Xem thêm</Button>
+    <Paper elevation={2} sx={{ mt: 5, p: 2, borderRadius: 3 }}>
+      <Box sx={{ display: "flex", justifyContent: "space-between", mb: 2, alignItems: "center" }}>
+        <Typography variant="h5" sx={{ fontWeight: "bold", borderBottom: "3px solid #1976d2" }}>
+          {title}
+        </Typography>
+        <Button component={Link} to={link} variant="outlined" size="small">
+          Xem thêm
+        </Button>
       </Box>
-      <Box sx={{ display: "flex", overflowX: "auto", gap: 2 }}>
+      <Box sx={{ display: "flex", overflowX: "auto", gap: 2, scrollBehavior: "smooth", pb: 1 }}>
         {movies.map(m => (
-          <Card key={m._id} sx={{ minWidth: 160 }}>
+          <Card
+            key={m._id}
+            sx={{
+              minWidth: 160,
+              transition: "transform 0.3s, box-shadow 0.3s",
+              "&:hover": { transform: "scale(1.05)", boxShadow: 6 }
+            }}
+          >
             <Link to={`/phim/${m.slug}`}>
               <CardMedia
                 component="img"
@@ -31,10 +43,13 @@ function HorizontalSection({ title, link, movies }) {
                   ? m.poster_url
                   : `https://phimimg.com/${m.poster_url}`}
                 onError={(e) => { e.target.src = "/no-image.jpg"; }}
+                sx={{ borderRadius: 2 }}
               />
             </Link>
-            <CardContent>
-              <Typography variant="body2" noWrap>{m.name}</Typography>
+            <CardContent sx={{ textAlign: "center" }}>
+              <Typography variant="subtitle2" noWrap fontWeight="bold">
+                {m.name}
+              </Typography>
               <Typography variant="caption" color="text.secondary">
                 {m.year} • {m.quality}
               </Typography>
@@ -42,7 +57,7 @@ function HorizontalSection({ title, link, movies }) {
           </Card>
         ))}
       </Box>
-    </Box>
+    </Paper>
   );
 }
 
@@ -77,15 +92,18 @@ function Home() {
 
   if (loading) {
     return (
-      <Container sx={{ mt: 3, textAlign: "center" }}>
+      <Container maxWidth="lg" sx={{ mt: 5, textAlign: "center" }}>
         <CircularProgress />
+        <Typography variant="body1" sx={{ mt: 2 }}>Đang tải phim...</Typography>
       </Container>
     );
   }
 
   return (
-    <Container sx={{ mt: 3 }}>
-      <Typography variant="h4" gutterBottom>🎬 Hdophim - Trang chủ</Typography>
+    <Container maxWidth="lg" sx={{ mt: 5 }}>
+      <Typography variant="h4" gutterBottom fontWeight="bold" color="primary">
+        🎬 Hdophim - Trang chủ
+      </Typography>
 
       <HorizontalSection
         title="🔥 Phim mới cập nhật"
