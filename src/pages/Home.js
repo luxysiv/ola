@@ -189,7 +189,7 @@ function Home() {
       />
 
       <HorizontalSection
-        title="📺 Loại phim: Phim Bộ"
+        title="Phim Bộ"
         link="/danh-sach/phim-bo"
         movies={phimBo}
       />
