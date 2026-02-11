@@ -82,7 +82,7 @@ function Header() {
                     button
                     key={c._id}
                     onClick={() => {
-                      navigate(`/category/${c.slug}`);
+                      navigate(`/the-loai/${c.slug}`);
                       toggleDrawer();
                     }}
                   >
@@ -108,7 +108,7 @@ function Header() {
                     button
                     key={c._id}
                     onClick={() => {
-                      navigate(`/country/${c.slug}`);
+                      navigate(`/quoc-gia/${c.slug}`);
                       toggleDrawer();
                     }}
                   >
@@ -134,7 +134,7 @@ function Header() {
                     button
                     key={y}
                     onClick={() => {
-                      navigate(`/year/${y}`);
+                      navigate(`/nam/${y}`);
                       toggleDrawer();
                     }}
                   >
@@ -168,7 +168,7 @@ function Header() {
                     button
                     key={t.slug}
                     onClick={() => {
-                      navigate(`/list/${t.slug}`);
+                      navigate(`/danh-sach/${t.slug}`);
                       toggleDrawer();
                     }}
                   >
