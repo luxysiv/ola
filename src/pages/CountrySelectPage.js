@@ -22,7 +22,7 @@ function CountrySelectPage() {
       <Select
         fullWidth
         value=""
-        onChange={e => navigate(`/country/${e.target.value}`)}
+        onChange={e => navigate(`/quoc-gia/${e.target.value}`)}
       >
         <MenuItem value="">--Chọn quốc gia--</MenuItem>
         {countries.map(c => (
