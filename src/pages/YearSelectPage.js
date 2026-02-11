@@ -16,7 +16,7 @@ function YearSelectPage() {
       <Select
         fullWidth
         value=""
-        onChange={e => navigate(`/year/${e.target.value}`)}
+        onChange={e => navigate(`/nam/${e.target.value}`)}
       >
         <MenuItem value="">--Chọn năm--</MenuItem>
         {years.map(y => (
