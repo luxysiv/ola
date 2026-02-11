@@ -58,7 +58,7 @@ function TypeListPage() {
         fullWidth
         value={type_list || ""}
         onChange={e =>
-          navigate(`/list/${e.target.value}`)
+          navigate(`/danh-sach/${e.target.value}`)
         }
       >
         <MenuItem value="">--Chọn loại phim--</MenuItem>
@@ -81,7 +81,7 @@ function TypeListPage() {
         {movies.map(m => (
           <Grid item xs={6} sm={4} md={3} lg={2} key={m._id}>
             <Card>
-              <Link to={`/movie/${m.slug}`}>
+              <Link to={`/phim/${m.slug}`}>
                 <CardMedia
                   component="img"
                   height="250"
