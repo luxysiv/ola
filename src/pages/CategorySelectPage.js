@@ -22,7 +22,7 @@ function CategorySelectPage() {
       <Select
         fullWidth
         value=""
-        onChange={e => navigate(`/category/${e.target.value}`)}
+        onChange={e => navigate(`/the-loai/${e.target.value}`)}
       >
         <MenuItem value="">--Chọn thể loại--</MenuItem>
         {categories.map(c => (
