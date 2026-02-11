@@ -51,7 +51,7 @@ function Search() {
         {results.map(movie => (
           <Grid item xs={6} sm={4} md={3} key={movie._id}>
             <Card>
-              <Link to={`/movie/${movie.slug}`}>
+              <Link to={`/phim/${movie.slug}`}>
                 <CardMedia
                   component="img"
                   height="260"
