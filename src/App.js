@@ -8,6 +8,7 @@ import YearPage from "./pages/YearPage";
 import MovieDetail from "./pages/MovieDetail";
 import TypeListPage from "./pages/TypeListPage";
 import Header from "./components/Header";
+import LatestPage from "./pages/LatestPage";
 
 function App() {
   return (
@@ -15,6 +16,7 @@ function App() {
       <Header />
       <Routes>
         <Route path="/" element={<Home />} />
+        <Route path="/latest" element={<LatestPage />} />
         <Route path="/search" element={<Search />} />
         <Route path="/category/:category" element={<CategoryPage />} />
         <Route path="/country/:country" element={<CountryPage />} />
