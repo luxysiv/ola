@@ -17,12 +17,12 @@ function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/phim-moi-cap-nhat" element={<LatestPage />} />
-        <Route path="/search" element={<Search />} />
-        <Route path="/category/:category" element={<CategoryPage />} />
-        <Route path="/country/:country" element={<CountryPage />} />
-        <Route path="/year/:year" element={<YearPage />} />
-        <Route path="/list/:type_list" element={<TypeListPage />} />
-        <Route path="/movie/:slug" element={<MovieDetail />} />
+        <Route path="/tim-kiem" element={<Search />} />
+        <Route path="/the-loai/:category" element={<CategoryPage />} />
+        <Route path="/quoc-gia/:country" element={<CountryPage />} />
+        <Route path="/nam/:year" element={<YearPage />} />
+        <Route path="/danh-sach/:type_list" element={<TypeListPage />} />
+        <Route path="/phim/:slug" element={<MovieDetail />} />
       </Routes>
     </Router>
   );
