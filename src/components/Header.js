@@ -61,7 +61,7 @@ function Header() {
           </Typography>
 
           {/* Nút tìm kiếm bằng icon */}
-          <IconButton color="inherit" onClick={() => navigate("/search")}>
+          <IconButton color="inherit" onClick={() => navigate("/tim-kiem")}>
             <SearchIcon />
           </IconButton>
         </Toolbar>
