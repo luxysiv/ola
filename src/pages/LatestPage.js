@@ -20,18 +20,29 @@ function LatestPage() {
   return (
     <Container sx={{ mt: 3 }}>
       <Typography variant="h5" gutterBottom>🔥 Phim mới cập nhật</Typography>
-      {loading && <Box sx={{ textAlign: "center", mt: 3 }}><CircularProgress /></Box>}
+      {loading && (
+        <Box sx={{ textAlign: "center", mt: 3 }}>
+          <CircularProgress />
+        </Box>
+      )}
       <Grid container spacing={2} sx={{ mt: 2 }}>
         {movies.map(m => (
           <Grid item xs={6} sm={4} md={3} lg={2} key={m._id}>
             <Card>
               <Link to={`/movie/${m.slug}`}>
-                <CardMedia component="img" height="250"
-                  image={`https://phimimg.com/${m.poster_url}`}
-                  onError={(e) => { e.target.src = "/no-image.jpg"; }} />
+                <CardMedia
+                  component="img"
+                  height="250"
+                  image={
+                    m.poster_url?.startsWith("http")
+                      ? m.poster_url
+                      : `https://phimimg.com/${m.poster_url}`
+                  }
+                  onError={(e) => { e.target.src = "/no-image.jpg"; }}
+                />
               </Link>
               <CardContent>
-                <Typography variant="body2">{m.name}</Typography>
+                <Typography variant="body2" noWrap>{m.name}</Typography>
                 <Typography variant="caption" color="text.secondary">
                   {m.year} • {m.quality}
                 </Typography>
