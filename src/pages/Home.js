@@ -1,90 +1,115 @@
 // src/pages/Home.js
-import React from "react";
-import { Container, Typography, Grid, Card, CardMedia, CardContent, Box, Button } from "@mui/material";
+import React, { useEffect, useState } from "react";
+import axios from "axios";
 import { Link } from "react-router-dom";
+import {
+  Container,
+  Typography,
+  Box,
+  CircularProgress,
+  Card,
+  CardMedia,
+  CardContent,
+  Button
+} from "@mui/material";
+
+function HorizontalSection({ title, link, movies }) {
+  return (
+    <Box sx={{ mt: 4 }}>
+      <Box sx={{ display: "flex", justifyContent: "space-between", mb: 2 }}>
+        <Typography variant="h5">{title}</Typography>
+        <Button component={Link} to={link}>Xem thêm</Button>
+      </Box>
+      <Box sx={{ display: "flex", overflowX: "auto", gap: 2 }}>
+        {movies.map(m => (
+          <Card key={m._id} sx={{ minWidth: 160 }}>
+            <Link to={`/movie/${m.slug}`}>
+              <CardMedia
+                component="img"
+                height="220"
+                image={m.poster_url?.startsWith("http")
+                  ? m.poster_url
+                  : `https://phimimg.com/${m.poster_url}`}
+                onError={(e) => { e.target.src = "/no-image.jpg"; }}
+              />
+            </Link>
+            <CardContent>
+              <Typography variant="body2" noWrap>{m.name}</Typography>
+              <Typography variant="caption" color="text.secondary">
+                {m.year} • {m.quality}
+              </Typography>
+            </CardContent>
+          </Card>
+        ))}
+      </Box>
+    </Box>
+  );
+}
 
 function Home() {
-  const featuredCategories = [
-    { slug: "hanh-dong", name: "Hành động" },
-    { slug: "co-trang", name: "Cổ Trang" },
-    { slug: "tinh-cam", name: "Tình Cảm" }
-  ];
+  const [latest, setLatest] = useState([]);
+  const [hanhDong, setHanhDong] = useState([]);
+  const [hanQuoc, setHanQuoc] = useState([]);
+  const [phimBo, setPhimBo] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const featuredCountries = [
-    { slug: "han-quoc", name: "Hàn Quốc" },
-    { slug: "trung-quoc", name: "Trung Quốc" },
-    { slug: "viet-nam", name: "Việt Nam" }
-  ];
+  useEffect(() => {
+    Promise.all([
+      axios.get("https://phimapi.com/danh-sach/phim-moi-cap-nhat-v3?page=1"),
+      axios.get("https://phimapi.com/v1/api/the-loai/hanh-dong?page=1"),
+      axios.get("https://phimapi.com/v1/api/quoc-gia/han-quoc?page=1"),
+      axios.get("https://phimapi.com/v1/api/danh-sach/phim-bo?page=1")
+    ])
+      .then(([latestRes, catRes, countryRes, typeRes]) => {
+        setLatest(latestRes.data.items || []);
+        setHanhDong(catRes.data.data.items || []);
+        setHanQuoc(countryRes.data.data.items || []);
+        setPhimBo(typeRes.data.data.items || []);
+      })
+      .catch(() => {
+        setLatest([]);
+        setHanhDong([]);
+        setHanQuoc([]);
+        setPhimBo([]);
+      })
+      .finally(() => setLoading(false));
+  }, []);
 
-  const featuredTypes = [
-    { slug: "phim-bo", name: "Phim Bộ" },
-    { slug: "phim-le", name: "Phim Lẻ" },
-    { slug: "hoat-hinh", name: "Hoạt Hình" }
-  ];
+  if (loading) {
+    return (
+      <Container sx={{ mt: 3, textAlign: "center" }}>
+        <CircularProgress />
+      </Container>
+    );
+  }
 
   return (
     <Container sx={{ mt: 3 }}>
       <Typography variant="h4" gutterBottom>🎬 Hdophim - Trang chủ</Typography>
 
-      {/* Section Thể loại */}
-      <Box sx={{ mt: 4 }}>
-        <Typography variant="h5" gutterBottom>Thể loại tiêu biểu</Typography>
-        <Grid container spacing={2}>
-          {featuredCategories.map(c => (
-            <Grid item xs={12} sm={4} key={c.slug}>
-              <Card>
-                <Link to={`/category/${c.slug}`}>
-                  <CardMedia component="img" height="180" image="/category.jpg" />
-                </Link>
-                <CardContent>
-                  <Typography variant="h6">{c.name}</Typography>
-                  <Button component={Link} to={`/category/${c.slug}`} size="small">Xem thêm</Button>
-                </CardContent>
-              </Card>
-            </Grid>
-          ))}
-        </Grid>
-      </Box>
+      <HorizontalSection
+        title="🔥 Phim mới cập nhật"
+        link="/latest"
+        movies={latest}
+      />
 
-      {/* Section Quốc gia */}
-      <Box sx={{ mt: 4 }}>
-        <Typography variant="h5" gutterBottom>Quốc gia tiêu biểu</Typography>
-        <Grid container spacing={2}>
-          {featuredCountries.map(c => (
-            <Grid item xs={12} sm={4} key={c.slug}>
-              <Card>
-                <Link to={`/country/${c.slug}`}>
-                  <CardMedia component="img" height="180" image="/country.jpg" />
-                </Link>
-                <CardContent>
-                  <Typography variant="h6">{c.name}</Typography>
-                  <Button component={Link} to={`/country/${c.slug}`} size="small">Xem thêm</Button>
-                </CardContent>
-              </Card>
-            </Grid>
-          ))}
-        </Grid>
-      </Box>
+      <HorizontalSection
+        title="🎯 Thể loại: Hành động"
+        link="/category/hanh-dong"
+        movies={hanhDong}
+      />
 
-      {/* Section Loại phim */}
-      <Box sx={{ mt: 4 }}>
-        <Typography variant="h5" gutterBottom>Loại phim tiêu biểu</Typography>
-        <Grid container spacing={2}>
-          {featuredTypes.map(t => (
-            <Grid item xs={12} sm={4} key={t.slug}>
-              <Card>
-                <Link to={`/list/${t.slug}`}>
-                  <CardMedia component="img" height="180" image="/type.jpg" />
-                </Link>
-                <CardContent>
-                  <Typography variant="h6">{t.name}</Typography>
-                  <Button component={Link} to={`/list/${t.slug}`} size="small">Xem thêm</Button>
-                </CardContent>
-              </Card>
-            </Grid>
-          ))}
-        </Grid>
-      </Box>
+      <HorizontalSection
+        title="🌏 Quốc gia: Hàn Quốc"
+        link="/country/han-quoc"
+        movies={hanQuoc}
+      />
+
+      <HorizontalSection
+        title="📺 Loại phim: Phim Bộ"
+        link="/list/phim-bo"
+        movies={phimBo}
+      />
     </Container>
   );
 }
