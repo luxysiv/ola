@@ -16,7 +16,7 @@ function App() {
       <Header />
       <Routes>
         <Route path="/" element={<Home />} />
-        <Route path="/latest" element={<LatestPage />} />
+        <Route path="/phim-moi-cap-nhat" element={<LatestPage />} />
         <Route path="/search" element={<Search />} />
         <Route path="/category/:category" element={<CategoryPage />} />
         <Route path="/country/:country" element={<CountryPage />} />
