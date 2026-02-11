@@ -13,38 +13,25 @@ import {
   Button,
   Paper
 } from "@mui/material";
-import Slider from "react-slick";
-import "slick-carousel/slick/slick.css";
-import "slick-carousel/slick/slick-theme.css";
+import { Swiper, SwiperSlide } from "swiper/react";
+import { Autoplay, Pagination, Navigation } from "swiper/modules";
+import "swiper/css";
+import "swiper/css/pagination";
+import "swiper/css/navigation";
 
 function BannerSection({ movies }) {
-  const settings = {
-    dots: true,
-    infinite: true,
-    speed: 600,
-    slidesToShow: 1,
-    slidesToScroll: 1,
-    centerMode: true,
-    centerPadding: "120px",
-    autoplay: true,
-    autoplaySpeed: 4000,
-    responsive: [
-      {
-        breakpoint: 768, // tablet trở xuống
-        settings: {
-          centerMode: false,
-          centerPadding: "0px",
-          slidesToShow: 1
-        }
-      }
-    ]
-  };
-
   return (
     <Box sx={{ mb: 5 }}>
-      <Slider {...settings}>
+      <Swiper
+        modules={[Autoplay, Pagination, Navigation]}
+        autoplay={{ delay: 4000, disableOnInteraction: false }}
+        pagination={{ clickable: true }}
+        navigation
+        loop
+        style={{ borderRadius: "12px" }}
+      >
         {movies.map(m => (
-          <Box key={m._id} sx={{ position: "relative", px: 2 }}>
+          <SwiperSlide key={m._id}>
             <Link to={`/phim/${m.slug}`}>
               <Box
                 component="img"
@@ -54,7 +41,7 @@ function BannerSection({ movies }) {
                 alt={m.name}
                 sx={{
                   width: "100%",
-                  height: { xs: 220, sm: 300, md: 400 },
+                  height: { xs: 220, sm: 300, md: 420 },
                   objectFit: "cover",
                   borderRadius: 3,
                   boxShadow: 4
@@ -72,11 +59,7 @@ function BannerSection({ movies }) {
                   borderRadius: "0 0 12px 12px"
                 }}
               >
-                <Typography 
-                  variant={{ xs: "h6", md: "h5" }} 
-                  color="white" 
-                  fontWeight="bold"
-                >
+                <Typography variant="h6" color="white" fontWeight="bold">
                   {m.name}
                 </Typography>
                 <Typography variant="body2" color="white">
@@ -84,9 +67,9 @@ function BannerSection({ movies }) {
                 </Typography>
               </Box>
             </Link>
-          </Box>
+          </SwiperSlide>
         ))}
-      </Slider>
+      </Swiper>
     </Box>
   );
 }
@@ -182,19 +165,19 @@ function Home() {
       <BannerSection movies={latest} />
 
       <HorizontalSection
-        title="Hành động"
+        title="🎯 Thể loại: Hành động"
         link="/the-loai/hanh-dong"
         movies={hanhDong}
       />
 
       <HorizontalSection
-        title="Hàn Quốc"
+        title="🌏 Quốc gia: Hàn Quốc"
         link="/quoc-gia/han-quoc"
         movies={hanQuoc}
       />
 
       <HorizontalSection
-        title="Phim Bộ"
+        title="📺 Loại phim: Phim Bộ"
         link="/danh-sach/phim-bo"
         movies={phimBo}
       />
