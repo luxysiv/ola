@@ -25,9 +25,19 @@ function BannerSection({ movies }) {
     slidesToShow: 1,
     slidesToScroll: 1,
     centerMode: true,
-    centerPadding: "120px", // tạo hiệu ứng 2 banner phụ mờ hai bên
+    centerPadding: "120px",
     autoplay: true,
-    autoplaySpeed: 4000
+    autoplaySpeed: 4000,
+    responsive: [
+      {
+        breakpoint: 768, // tablet trở xuống
+        settings: {
+          centerMode: false,
+          centerPadding: "0px",
+          slidesToShow: 1
+        }
+      }
+    ]
   };
 
   return (
@@ -44,7 +54,7 @@ function BannerSection({ movies }) {
                 alt={m.name}
                 sx={{
                   width: "100%",
-                  height: 400,
+                  height: { xs: 220, sm: 300, md: 400 },
                   objectFit: "cover",
                   borderRadius: 3,
                   boxShadow: 4
@@ -57,12 +67,16 @@ function BannerSection({ movies }) {
                   bottom: 0,
                   left: 0,
                   right: 0,
-                  p: 3,
+                  p: { xs: 1.5, md: 3 },
                   background: "linear-gradient(to top, rgba(0,0,0,0.7), transparent)",
                   borderRadius: "0 0 12px 12px"
                 }}
               >
-                <Typography variant="h5" color="white" fontWeight="bold">
+                <Typography 
+                  variant={{ xs: "h6", md: "h5" }} 
+                  color="white" 
+                  fontWeight="bold"
+                >
                   {m.name}
                 </Typography>
                 <Typography variant="body2" color="white">
@@ -168,19 +182,19 @@ function Home() {
       <BannerSection movies={latest} />
 
       <HorizontalSection
-        title="🎯 Thể loại: Hành động"
+        title="Hành động"
         link="/the-loai/hanh-dong"
         movies={hanhDong}
       />
 
       <HorizontalSection
-        title="🌏 Quốc gia: Hàn Quốc"
+        title="Hàn Quốc"
         link="/quoc-gia/han-quoc"
         movies={hanQuoc}
       />
 
       <HorizontalSection
-        title="📺 Loại phim: Phim Bộ"
+        title="Phim Bộ"
         link="/danh-sach/phim-bo"
         movies={phimBo}
       />
