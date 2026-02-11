@@ -24,7 +24,7 @@ function TypeListSelectPage() {
       <Select
         fullWidth
         value=""
-        onChange={e => navigate(`/list/${e.target.value}`)}
+        onChange={e => navigate(`/danh-sach/${e.target.value}`)}
       >
         <MenuItem value="">--Chọn loại phim--</MenuItem>
         {types.map(t => (
