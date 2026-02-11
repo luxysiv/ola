@@ -19,9 +19,18 @@ import "swiper/css";
 import "swiper/css/pagination";
 import "swiper/css/navigation";
 
-function BannerSection({ movies }) {
+function BannerSection({ title, link, movies }) {
   return (
-    <Box sx={{ mb: 5 }}>
+    <Paper elevation={2} sx={{ mb: 5, p: 2, borderRadius: 3 }}>
+      <Box sx={{ display: "flex", justifyContent: "space-between", mb: 2, alignItems: "center" }}>
+        <Typography variant="h5" sx={{ fontWeight: "bold", borderBottom: "3px solid #1976d2" }}>
+          {title}
+        </Typography>
+        <Button component={Link} to={link} variant="outlined" size="small">
+          Xem thêm
+        </Button>
+      </Box>
+
       <Swiper
         modules={[Autoplay, Pagination, Navigation]}
         autoplay={{ delay: 4000, disableOnInteraction: false }}
@@ -35,8 +44,8 @@ function BannerSection({ movies }) {
             <Link to={`/phim/${m.slug}`}>
               <Box
                 component="img"
-                src={m.thumb_url?.startsWith("http")
-                  ? m.thumb_url
+                src={m.poster_url?.startsWith("http")
+                  ? m.poster_url
                   : `https://phimimg.com/${m.poster_url}`}
                 alt={m.name}
                 sx={{
@@ -70,7 +79,7 @@ function BannerSection({ movies }) {
           </SwiperSlide>
         ))}
       </Swiper>
-    </Box>
+    </Paper>
   );
 }
 
@@ -161,8 +170,11 @@ function Home() {
 
   return (
     <Container maxWidth="lg" sx={{ mt: 5 }}>
-      {/* Banner carousel cho phim mới cập nhật */}
-      <BannerSection movies={latest} />
+      <BannerSection
+        title="🔥 Phim mới cập nhật"
+        link="/phim-moi-cap-nhat"
+        movies={latest}
+      />
 
       <HorizontalSection
         title="🎯 Thể loại: Hành động"
