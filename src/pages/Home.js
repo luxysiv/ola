@@ -95,19 +95,19 @@ function Home() {
 
       <HorizontalSection
         title="🎯 Thể loại: Hành động"
-        link="/category/hanh-dong"
+        link="/the-loai/hanh-dong"
         movies={hanhDong}
       />
 
       <HorizontalSection
         title="🌏 Quốc gia: Hàn Quốc"
-        link="/country/han-quoc"
+        link="/quoc-gia/han-quoc"
         movies={hanQuoc}
       />
 
       <HorizontalSection
         title="📺 Loại phim: Phim Bộ"
-        link="/list/phim-bo"
+        link="/danh-sach/phim-bo"
         movies={phimBo}
       />
     </Container>
