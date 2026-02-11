@@ -57,7 +57,7 @@ function CountryPage() {
         fullWidth
         value={country || ""}
         onChange={e =>
-          navigate(`/country/${e.target.value}`)
+          navigate(`/quoc-gia/${e.target.value}`)
         }
       >
         <MenuItem value="">--Chọn quốc gia--</MenuItem>
@@ -81,7 +81,7 @@ function CountryPage() {
         {movies.map(m => (
           <Grid item xs={6} sm={4} md={3} lg={2} key={m._id}>
             <Card>
-              <Link to={`/movie/${m.slug}`}>
+              <Link to={`/phim/${m.slug}`}>
                 <CardMedia
                   component="img"
                   height="250"
