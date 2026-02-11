@@ -1,72 +1,90 @@
-//src/pages/Home.js
-import React, { useEffect, useState } from "react";
-import axios from "axios";
+// src/pages/Home.js
+import React from "react";
+import { Container, Typography, Grid, Card, CardMedia, CardContent, Box, Button } from "@mui/material";
 import { Link } from "react-router-dom";
-import {
-  Container,
-  Typography,
-  Grid,
-  Card,
-  CardMedia,
-  CardContent,
-  CircularProgress,
-  Box
-} from "@mui/material";
 
 function Home() {
-  const [movies, setMovies] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const featuredCategories = [
+    { slug: "hanh-dong", name: "Hành động" },
+    { slug: "co-trang", name: "Cổ Trang" },
+    { slug: "tinh-cam", name: "Tình Cảm" }
+  ];
 
-  useEffect(() => {
-    axios
-      .get("https://phimapi.com/danh-sach/phim-moi-cap-nhat-v3?page=1")
-      .then(res => {
-        setMovies(res.data.items || []);
-      })
-      .catch(() => setMovies([]))
-      .finally(() => setLoading(false));
-  }, []);
+  const featuredCountries = [
+    { slug: "han-quoc", name: "Hàn Quốc" },
+    { slug: "trung-quoc", name: "Trung Quốc" },
+    { slug: "viet-nam", name: "Việt Nam" }
+  ];
+
+  const featuredTypes = [
+    { slug: "phim-bo", name: "Phim Bộ" },
+    { slug: "phim-le", name: "Phim Lẻ" },
+    { slug: "hoat-hinh", name: "Hoạt Hình" }
+  ];
 
   return (
     <Container sx={{ mt: 3 }}>
-      <Typography variant="h5" gutterBottom>
-        🔥 Phim mới cập nhật
-      </Typography>
+      <Typography variant="h4" gutterBottom>🎬 Hdophim - Trang chủ</Typography>
 
-      {loading && (
-        <Box sx={{ textAlign: "center", mt: 3 }}>
-          <CircularProgress />
-        </Box>
-      )}
+      {/* Section Thể loại */}
+      <Box sx={{ mt: 4 }}>
+        <Typography variant="h5" gutterBottom>Thể loại tiêu biểu</Typography>
+        <Grid container spacing={2}>
+          {featuredCategories.map(c => (
+            <Grid item xs={12} sm={4} key={c.slug}>
+              <Card>
+                <Link to={`/category/${c.slug}`}>
+                  <CardMedia component="img" height="180" image="/category.jpg" />
+                </Link>
+                <CardContent>
+                  <Typography variant="h6">{c.name}</Typography>
+                  <Button component={Link} to={`/category/${c.slug}`} size="small">Xem thêm</Button>
+                </CardContent>
+              </Card>
+            </Grid>
+          ))}
+        </Grid>
+      </Box>
 
-      <Grid container spacing={2} sx={{ mt: 2 }}>
-        {movies.map(m => (
-          <Grid item xs={6} sm={4} md={3} lg={2} key={m._id}>
-            <Card>
-              <Link to={`/movie/${m.slug}`}>
-                <CardMedia
-                  component="img"
-                  height="250"
-                  image={
-                    m.poster_url?.startsWith("http")
-                      ? m.poster_url
-                      : `https://phimimg.com/${m.poster_url}`
-                  }
-                  onError={(e) => {
-                    e.target.src = "/no-image.jpg";
-                  }}
-                />
-              </Link>
-              <CardContent>
-                <Typography variant="body2">{m.name}</Typography>
-                <Typography variant="caption" color="text.secondary">
-                  {m.year} • {m.quality}
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-        ))}
-      </Grid>
+      {/* Section Quốc gia */}
+      <Box sx={{ mt: 4 }}>
+        <Typography variant="h5" gutterBottom>Quốc gia tiêu biểu</Typography>
+        <Grid container spacing={2}>
+          {featuredCountries.map(c => (
+            <Grid item xs={12} sm={4} key={c.slug}>
+              <Card>
+                <Link to={`/country/${c.slug}`}>
+                  <CardMedia component="img" height="180" image="/country.jpg" />
+                </Link>
+                <CardContent>
+                  <Typography variant="h6">{c.name}</Typography>
+                  <Button component={Link} to={`/country/${c.slug}`} size="small">Xem thêm</Button>
+                </CardContent>
+              </Card>
+            </Grid>
+          ))}
+        </Grid>
+      </Box>
+
+      {/* Section Loại phim */}
+      <Box sx={{ mt: 4 }}>
+        <Typography variant="h5" gutterBottom>Loại phim tiêu biểu</Typography>
+        <Grid container spacing={2}>
+          {featuredTypes.map(t => (
+            <Grid item xs={12} sm={4} key={t.slug}>
+              <Card>
+                <Link to={`/list/${t.slug}`}>
+                  <CardMedia component="img" height="180" image="/type.jpg" />
+                </Link>
+                <CardContent>
+                  <Typography variant="h6">{t.name}</Typography>
+                  <Button component={Link} to={`/list/${t.slug}`} size="small">Xem thêm</Button>
+                </CardContent>
+              </Card>
+            </Grid>
+          ))}
+        </Grid>
+      </Box>
     </Container>
   );
 }
