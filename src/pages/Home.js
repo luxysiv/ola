@@ -89,7 +89,7 @@ function Home() {
 
       <HorizontalSection
         title="🔥 Phim mới cập nhật"
-        link="/latest"
+        link="/phim-moi-cap-nhat"
         movies={latest}
       />
 
