@@ -35,8 +35,8 @@ function BannerSection({ movies }) {
             <Link to={`/phim/${m.slug}`}>
               <Box
                 component="img"
-                src={m.poster_url?.startsWith("http")
-                  ? m.poster_url
+                src={m.thumb_url?.startsWith("http")
+                  ? m.thumb_url
                   : `https://phimimg.com/${m.poster_url}`}
                 alt={m.name}
                 sx={{
