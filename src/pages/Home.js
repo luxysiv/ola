@@ -13,6 +13,69 @@ import {
   Button,
   Paper
 } from "@mui/material";
+import Slider from "react-slick";
+import "slick-carousel/slick/slick.css";
+import "slick-carousel/slick/slick-theme.css";
+
+function BannerSection({ movies }) {
+  const settings = {
+    dots: true,
+    infinite: true,
+    speed: 600,
+    slidesToShow: 1,
+    slidesToScroll: 1,
+    centerMode: true,
+    centerPadding: "120px", // tạo hiệu ứng 2 banner phụ mờ hai bên
+    autoplay: true,
+    autoplaySpeed: 4000
+  };
+
+  return (
+    <Box sx={{ mb: 5 }}>
+      <Slider {...settings}>
+        {movies.map(m => (
+          <Box key={m._id} sx={{ position: "relative", px: 2 }}>
+            <Link to={`/phim/${m.slug}`}>
+              <Box
+                component="img"
+                src={m.poster_url?.startsWith("http")
+                  ? m.poster_url
+                  : `https://phimimg.com/${m.poster_url}`}
+                alt={m.name}
+                sx={{
+                  width: "100%",
+                  height: 400,
+                  objectFit: "cover",
+                  borderRadius: 3,
+                  boxShadow: 4
+                }}
+                onError={(e) => { e.target.src = "/no-image.jpg"; }}
+              />
+              <Box
+                sx={{
+                  position: "absolute",
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  p: 3,
+                  background: "linear-gradient(to top, rgba(0,0,0,0.7), transparent)",
+                  borderRadius: "0 0 12px 12px"
+                }}
+              >
+                <Typography variant="h5" color="white" fontWeight="bold">
+                  {m.name}
+                </Typography>
+                <Typography variant="body2" color="white">
+                  {m.year} • {m.quality}
+                </Typography>
+              </Box>
+            </Link>
+          </Box>
+        ))}
+      </Slider>
+    </Box>
+  );
+}
 
 function HorizontalSection({ title, link, movies }) {
   return (
@@ -101,15 +164,8 @@ function Home() {
 
   return (
     <Container maxWidth="lg" sx={{ mt: 5 }}>
-      <Typography variant="h4" gutterBottom fontWeight="bold" color="primary">
-        🎬 Hdophim - Trang chủ
-      </Typography>
-
-      <HorizontalSection
-        title="🔥 Phim mới cập nhật"
-        link="/phim-moi-cap-nhat"
-        movies={latest}
-      />
+      {/* Banner carousel cho phim mới cập nhật */}
+      <BannerSection movies={latest} />
 
       <HorizontalSection
         title="🎯 Thể loại: Hành động"
