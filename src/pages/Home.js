@@ -90,9 +90,6 @@ function BannerSection({ title, link, movies }) {
                   <Typography variant="body2" color="white">
                     {m.year} • {m.quality}
                   </Typography>
-                  <Button variant="contained" color="primary" sx={{ mt: 2 }}>
-                    Xem ngay
-                  </Button>
                 </Box>
               </Box>
             </Link>
