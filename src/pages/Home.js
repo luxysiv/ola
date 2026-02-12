@@ -20,9 +20,6 @@ import "swiper/css/pagination";
 import "swiper/css/navigation";
 import "swiper/css/effect-coverflow";
 
-/* ---------------------------
-   Movie card skeleton
-   --------------------------- */
 function MovieCardSkeleton() {
   return (
     <Card
@@ -43,9 +40,6 @@ function MovieCardSkeleton() {
   );
 }
 
-/* ---------------------------
-   Skeleton sections
-   --------------------------- */
 function BannerSkeleton() {
   return (
     <Paper elevation={2} sx={{ mb: 5, p: 2, borderRadius: 3 }}>
@@ -74,9 +68,6 @@ function HorizontalSkeleton() {
   );
 }
 
-/* ---------------------------
-   Banner (coverflow) section
-   --------------------------- */
 function BannerSection({ title, link, movies }) {
   return (
     <Paper elevation={2} sx={{ mb: 5, p: 2, borderRadius: 3 }}>
@@ -162,9 +153,6 @@ function BannerSection({ title, link, movies }) {
   );
 }
 
-/* ---------------------------
-   Horizontal movie strip
-   --------------------------- */
 function HorizontalSection({ title, link, movies }) {
   return (
     <Paper elevation={2} sx={{ mt: 5, p: 2, borderRadius: 3 }}>
@@ -216,9 +204,6 @@ function HorizontalSection({ title, link, movies }) {
   );
 }
 
-/* ---------------------------
-   Home page
-   --------------------------- */
 function Home() {
   const [latest, setLatest] = useState([]);
   const [hanhDong, setHanhDong] = useState([]);
@@ -261,13 +246,13 @@ function Home() {
 
   return (
     <Container maxWidth="lg" sx={{ mt: 5 }}>
-      <BannerSection title="🔥 Phim mới cập nhật" link="/phim-moi-cap-nhat" movies={latest} />
+      <BannerSection title="Phim mới cập nhật" link="/phim-moi-cap-nhat" movies={latest} />
 
-      <HorizontalSection title="🎯 Thể loại: Hành động" link="/the-loai/hanh-dong" movies={hanhDong} />
+      <HorizontalSection title="Hành động" link="/the-loai/hanh-dong" movies={hanhDong} />
 
-      <HorizontalSection title="🌏 Quốc gia: Hàn Quốc" link="/quoc-gia/han-quoc" movies={hanQuoc} />
+      <HorizontalSection title="Hàn Quốc" link="/quoc-gia/han-quoc" movies={hanQuoc} />
 
-      <HorizontalSection title="📺 Loại phim: Phim Bộ" link="/danh-sach/phim-bo" movies={phimBo} />
+      <HorizontalSection title="Phim Bộ" link="/danh-sach/phim-bo" movies={phimBo} />
     </Container>
   );
 }
