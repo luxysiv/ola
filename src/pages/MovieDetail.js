@@ -15,12 +15,12 @@ import {
   Chip
 } from "@mui/material";
 
-/* ==============================
-   Chuẩn hóa tên cho URL
-================================*/
 const normalize = (str = "") =>
   str
     .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
     .replace(/[()#]/g, "")
     .replace(/\s+/g, "-")
     .replace(/-+/g, "-")
@@ -39,9 +39,6 @@ function MovieDetail() {
   const [currentEp, setCurrentEp] =
     useState(null);
 
-  /* ==============================
-     Load dữ liệu phim
-  ==============================*/
   useEffect(() => {
     axios
       .get(`https://phimapi.com/phim/${slug}`)
@@ -52,7 +49,6 @@ function MovieDetail() {
         setMovie(movieData);
         setServers(epData);
 
-        /* đọc URL */
         const svSlug =
           searchParams.get("sv");
         const epSlug =
@@ -100,10 +96,7 @@ function MovieDetail() {
   const banner =
     movie?.thumb_url ||
     movie?.poster_url;
-
-  /* ==============================
-     Chọn tập
-  ==============================*/
+  
   const handleSelectEpisode = (
     ep,
     index
@@ -125,9 +118,6 @@ function MovieDetail() {
     });
   };
 
-  /* ==============================
-     Đổi server
-  ==============================*/
   const handleChangeServer = index => {
     setCurrentServer(index);
     setSrc(null);
