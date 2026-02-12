@@ -15,6 +15,17 @@ import {
   Chip
 } from "@mui/material";
 
+/* ==============================
+   Chuẩn hóa tên cho URL
+================================*/
+const normalize = (str = "") =>
+  str
+    .toLowerCase()
+    .replace(/[()#]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .trim();
+
 function MovieDetail() {
   const { slug } = useParams();
   const [searchParams, setSearchParams] =
@@ -28,7 +39,9 @@ function MovieDetail() {
   const [currentEp, setCurrentEp] =
     useState(null);
 
-  // Load phim
+  /* ==============================
+     Load dữ liệu phim
+  ==============================*/
   useEffect(() => {
     axios
       .get(`https://phimapi.com/phim/${slug}`)
@@ -39,54 +52,91 @@ function MovieDetail() {
         setMovie(movieData);
         setServers(epData);
 
-        // đọc URL
-        const sv =
-          parseInt(searchParams.get("sv")) || 0;
+        /* đọc URL */
+        const svSlug =
+          searchParams.get("sv");
+        const epSlug =
+          searchParams.get("ep");
+
+        if (!svSlug) return;
+
+        const svIndex = epData.findIndex(
+          s =>
+            normalize(s.server_name) ===
+            svSlug
+        );
+
+        if (svIndex === -1) return;
+
+        setCurrentServer(svIndex);
+
+        if (!epSlug) return;
+
         const epIndex =
-          parseInt(searchParams.get("ep"));
+          epData[
+            svIndex
+          ].server_data.findIndex(
+            e =>
+              normalize(e.name) ===
+              epSlug
+          );
 
-        if (
-          epData[sv] &&
-          epData[sv].server_data[epIndex]
-        ) {
-          const ep =
-            epData[sv].server_data[epIndex];
+        if (epIndex === -1) return;
 
-          setCurrentServer(sv);
-          setCurrentEp(ep.name);
-          setSrc(ep.link_m3u8);
-        }
+        const ep =
+          epData[svIndex]
+            .server_data[epIndex];
+
+        setCurrentEp(ep.name);
+        setSrc(ep.link_m3u8);
       })
       .catch(console.error);
   }, [slug]);
 
   const episodeList =
-    servers[currentServer]?.server_data || [];
+    servers[currentServer]
+      ?.server_data || [];
 
   const banner =
-    movie?.thumb_url || movie?.poster_url;
+    movie?.thumb_url ||
+    movie?.poster_url;
 
-  // chọn tập
-  const handleSelectEpisode = (ep, index) => {
+  /* ==============================
+     Chọn tập
+  ==============================*/
+  const handleSelectEpisode = (
+    ep,
+    index
+  ) => {
     setSrc(ep.link_m3u8);
     setCurrentEp(ep.name);
 
     setSearchParams({
-      sv: currentServer,
-      ep: index
+      sv: normalize(
+        servers[currentServer]
+          .server_name
+      ),
+      ep: normalize(ep.name)
     });
 
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth"
+    });
   };
 
-  // đổi server
-  const handleChangeServer = (index) => {
+  /* ==============================
+     Đổi server
+  ==============================*/
+  const handleChangeServer = index => {
     setCurrentServer(index);
     setSrc(null);
     setCurrentEp(null);
 
     setSearchParams({
-      sv: index
+      sv: normalize(
+        servers[index].server_name
+      )
     });
   };
 
@@ -103,7 +153,8 @@ function MovieDetail() {
               height: 450,
               backgroundImage: `url(${banner})`,
               backgroundSize: "cover",
-              backgroundPosition: "center",
+              backgroundPosition:
+                "center",
               borderRadius: 2,
               mb: 2
             }}
@@ -111,10 +162,13 @@ function MovieDetail() {
         )
       )}
 
-      {/* Info */}
+      {/* Thông tin phim */}
       {movie && (
         <>
-          <Typography variant="h4" fontWeight="bold">
+          <Typography
+            variant="h4"
+            fontWeight="bold"
+          >
             {movie.name}
           </Typography>
 
@@ -132,21 +186,44 @@ function MovieDetail() {
             <Chip label={movie.quality} />
             <Chip label={movie.lang} />
             <Chip label={movie.time} />
-            <Chip label={movie.episode_current} />
+            <Chip
+              label={
+                movie.episode_current
+              }
+            />
           </Stack>
 
           <Typography sx={{ mt: 2 }}>
             {movie.content}
           </Typography>
+
+          <Typography sx={{ mt: 2 }}>
+            <b>Diễn viên:</b>{" "}
+            {movie.actor?.join(", ")}
+          </Typography>
+
+          <Typography>
+            <b>Thể loại:</b>{" "}
+            {movie.category
+              ?.map(c => c.name)
+              .join(", ")}
+          </Typography>
         </>
       )}
 
       {/* Server */}
-      <Typography sx={{ mt: 3 }} variant="h6">
+      <Typography
+        sx={{ mt: 3 }}
+        variant="h6"
+      >
         Server
       </Typography>
 
-      <Stack direction="row" spacing={1} flexWrap="wrap">
+      <Stack
+        direction="row"
+        spacing={1}
+        flexWrap="wrap"
+      >
         {servers.map((sv, i) => (
           <Button
             key={i}
@@ -164,12 +241,19 @@ function MovieDetail() {
         ))}
       </Stack>
 
-      {/* Episode */}
-      <Typography sx={{ mt: 3 }} variant="h6">
+      {/* Danh sách tập */}
+      <Typography
+        sx={{ mt: 3 }}
+        variant="h6"
+      >
         Danh sách tập
       </Typography>
 
-      <Stack direction="row" spacing={1} flexWrap="wrap">
+      <Stack
+        direction="row"
+        spacing={1}
+        flexWrap="wrap"
+      >
         {episodeList.map((ep, i) => (
           <Button
             key={i}
