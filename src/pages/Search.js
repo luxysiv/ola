@@ -50,7 +50,7 @@ function Search() {
       setPage(pageNum);
 
       // update URL
-      navigate(`/search?keyword=${encodeURIComponent(kw)}&page=${pageNum}`, {
+      navigate(`/tim-kiem?tu-khoa=${encodeURIComponent(kw)}&trang=${pageNum}`, {
         replace: false
       });
     } catch (error) {
