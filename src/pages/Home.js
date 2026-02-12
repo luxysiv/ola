@@ -13,10 +13,15 @@ import {
   Button,
   Paper
 } from "@mui/material";
+import { Swiper, SwiperSlide } from "swiper/react";
+import { Autoplay, Pagination, Navigation } from "swiper/modules";
+import "swiper/css";
+import "swiper/css/pagination";
+import "swiper/css/navigation";
 
 function BannerSection({ title, link, movies }) {
   return (
-    <Paper elevation={2} sx={{ mb: 5, p: 2, borderRadius: 3 }}>
+    <Box sx={{ mb: 5 }}>
       <Box sx={{ display: "flex", justifyContent: "space-between", mb: 2, alignItems: "center" }}>
         <Typography variant="h5" sx={{ fontWeight: "bold", borderBottom: "3px solid #1976d2" }}>
           {title}
@@ -26,43 +31,62 @@ function BannerSection({ title, link, movies }) {
         </Button>
       </Box>
 
-      <Box
-        sx={{
-          display: "grid",
-          gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr", md: "1fr 1fr 1fr" },
-          gap: 2
-        }}
+      <Swiper
+        modules={[Autoplay, Pagination, Navigation]}
+        autoplay={{ delay: 4000, disableOnInteraction: false }}
+        pagination={{ clickable: true }}
+        navigation
+        loop
+        style={{ width: "100%", height: "100vh", borderRadius: "12px" }}
       >
-        {movies.slice(0, 6).map(m => (
-          <Card
-            key={m._id}
-            sx={{
-              transition: "transform 0.3s, box-shadow 0.3s",
-              "&:hover": { transform: "scale(1.05)", boxShadow: 6 }
-            }}
-          >
-            <Link to={`/phim/${m.slug}`}>
-              <CardMedia
+        {movies.map(m => (
+          <SwiperSlide key={m._id}>
+            <Box sx={{ position: "relative", width: "100%", height: "100vh" }}>
+              <Box
                 component="img"
-                image={m.poster_url?.startsWith("http")
+                src={m.poster_url?.startsWith("http")
                   ? m.poster_url
                   : `https://phimimg.com/${m.poster_url}`}
+                alt={m.name}
+                sx={{
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                  borderRadius: 3
+                }}
                 onError={(e) => { e.target.src = "/no-image.jpg"; }}
-                sx={{ borderRadius: 2, height: 320, objectFit: "cover" }}
               />
-            </Link>
-            <CardContent sx={{ textAlign: "center" }}>
-              <Typography variant="subtitle2" noWrap fontWeight="bold">
-                {m.name}
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                {m.year} • {m.quality}
-              </Typography>
-            </CardContent>
-          </Card>
+              <Box
+                sx={{
+                  position: "absolute",
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  p: { xs: 2, md: 4 },
+                  background: "linear-gradient(to top, rgba(0,0,0,0.6), transparent)"
+                }}
+              >
+                <Typography variant="h4" color="white" fontWeight="bold">
+                  {m.name}
+                </Typography>
+                <Typography variant="body1" color="white">
+                  {m.year} • {m.quality}
+                </Typography>
+                <Button
+                  component={Link}
+                  to={`/phim/${m.slug}`}
+                  variant="contained"
+                  color="primary"
+                  sx={{ mt: 2 }}
+                >
+                  Xem ngay
+                </Button>
+              </Box>
+            </Box>
+          </SwiperSlide>
         ))}
-      </Box>
-    </Paper>
+      </Swiper>
+    </Box>
   );
 }
 
