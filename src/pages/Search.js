@@ -1,7 +1,7 @@
 // src/pages/Search.js
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { Link } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
   Container,
   TextField,
@@ -25,17 +25,34 @@ function Search() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
-  // gọi API tìm kiếm
-  const handleSearch = async (pageNum = 1) => {
-    if (!keyword.trim()) return;
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  // đọc từ URL khi load trang
+  useEffect(() => {
+    const kw = searchParams.get("keyword") || "";
+    const pg = parseInt(searchParams.get("page") || "1", 10);
+    if (kw) {
+      setKeyword(kw);
+      handleSearch(pg, kw);
+    }
+  }, []);
+
+  const handleSearch = async (pageNum = 1, kw = keyword) => {
+    if (!kw.trim()) return;
     setLoading(true);
     try {
       const res = await axios.get(
-        `https://phimapi.com/v1/api/tim-kiem?keyword=${keyword}&page=${pageNum}`
+        `https://phimapi.com/v1/api/tim-kiem?keyword=${kw}&page=${pageNum}`
       );
       setResults(res.data.data.items || []);
       setTotalPages(res.data.data.params.pagination.totalPages || 1);
       setPage(pageNum);
+
+      // update URL
+      navigate(`/search?keyword=${encodeURIComponent(kw)}&page=${pageNum}`, {
+        replace: false
+      });
     } catch (error) {
       console.error("Error fetching data:", error);
     } finally {
