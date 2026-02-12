@@ -14,14 +14,15 @@ import {
   Paper
 } from "@mui/material";
 import { Swiper, SwiperSlide } from "swiper/react";
-import { Autoplay, Pagination, Navigation } from "swiper/modules";
+import { Autoplay, Pagination, Navigation, EffectCoverflow } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/pagination";
 import "swiper/css/navigation";
+import "swiper/css/effect-coverflow";
 
 function BannerSection({ title, link, movies }) {
   return (
-    <Box sx={{ mb: 5 }}>
+    <Paper elevation={2} sx={{ mb: 5, p: 2, borderRadius: 3 }}>
       <Box sx={{ display: "flex", justifyContent: "space-between", mb: 2, alignItems: "center" }}>
         <Typography variant="h5" sx={{ fontWeight: "bold", borderBottom: "3px solid #1976d2" }}>
           {title}
@@ -32,16 +33,31 @@ function BannerSection({ title, link, movies }) {
       </Box>
 
       <Swiper
-        modules={[Autoplay, Pagination, Navigation]}
+        modules={[Autoplay, Pagination, Navigation, EffectCoverflow]}
+        effect="coverflow"
+        grabCursor={true}
+        centeredSlides={true}
+        slidesPerView={3}
+        coverflowEffect={{
+          rotate: 0,
+          stretch: 0,
+          depth: 100,
+          modifier: 2,
+          slideShadows: false
+        }}
         autoplay={{ delay: 4000, disableOnInteraction: false }}
         pagination={{ clickable: true }}
         navigation
         loop
-        style={{ width: "100%", height: "100vh", borderRadius: "12px" }}
+        breakpoints={{
+          0: { slidesPerView: 1 },
+          768: { slidesPerView: 3 }
+        }}
+        style={{ width: "100%", height: "70vh" }}
       >
         {movies.map(m => (
           <SwiperSlide key={m._id}>
-            <Box sx={{ position: "relative", width: "100%", height: "100vh" }}>
+            <Box sx={{ position: "relative", width: "100%", height: "100%" }}>
               <Box
                 component="img"
                 src={m.poster_url?.startsWith("http")
@@ -52,7 +68,8 @@ function BannerSection({ title, link, movies }) {
                   width: "100%",
                   height: "100%",
                   objectFit: "cover",
-                  borderRadius: 3
+                  borderRadius: 3,
+                  boxShadow: 6
                 }}
                 onError={(e) => { e.target.src = "/no-image.jpg"; }}
               />
@@ -66,27 +83,18 @@ function BannerSection({ title, link, movies }) {
                   background: "linear-gradient(to top, rgba(0,0,0,0.6), transparent)"
                 }}
               >
-                <Typography variant="h4" color="white" fontWeight="bold">
+                <Typography variant="h6" color="white" fontWeight="bold">
                   {m.name}
                 </Typography>
-                <Typography variant="body1" color="white">
+                <Typography variant="body2" color="white">
                   {m.year} • {m.quality}
                 </Typography>
-                <Button
-                  component={Link}
-                  to={`/phim/${m.slug}`}
-                  variant="contained"
-                  color="primary"
-                  sx={{ mt: 2 }}
-                >
-                  Xem ngay
-                </Button>
               </Box>
             </Box>
           </SwiperSlide>
         ))}
       </Swiper>
-    </Box>
+    </Paper>
   );
 }
 
