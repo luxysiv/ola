@@ -11,7 +11,8 @@ import {
   CardMedia,
   CardContent,
   Button,
-  Paper
+  Paper,
+  Skeleton
 } from "@mui/material";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay, Pagination, Navigation, EffectCoverflow } from "swiper/modules";
@@ -147,6 +148,31 @@ function HorizontalSection({ title, link, movies }) {
   );
 }
 
+// Skeleton components
+function BannerSkeleton() {
+  return (
+    <Box sx={{ mb: 5 }}>
+      <Skeleton variant="rectangular" width="100%" height="70vh" sx={{ borderRadius: 3 }} animation="wave" />
+    </Box>
+  );
+}
+
+function HorizontalSkeleton() {
+  return (
+    <Paper elevation={2} sx={{ mt: 5, p: 2, borderRadius: 3 }}>
+      <Box sx={{ display: "flex", justifyContent: "space-between", mb: 2 }}>
+        <Skeleton variant="text" width={200} height={40} animation="wave" />
+        <Skeleton variant="rectangular" width={80} height={30} animation="wave" />
+      </Box>
+      <Box sx={{ display: "flex", gap: 2 }}>
+        {[...Array(5)].map((_, i) => (
+          <Skeleton key={i} variant="rectangular" width={160} height={220} sx={{ borderRadius: 2 }} animation="wave" />
+        ))}
+      </Box>
+    </Paper>
+  );
+}
+
 function Home() {
   const [latest, setLatest] = useState([]);
   const [hanhDong, setHanhDong] = useState([]);
@@ -178,9 +204,11 @@ function Home() {
 
   if (loading) {
     return (
-      <Container maxWidth="lg" sx={{ mt: 5, textAlign: "center" }}>
-        <CircularProgress />
-        <Typography variant="body1" sx={{ mt: 2 }}>Đang tải phim...</Typography>
+      <Container maxWidth="lg" sx={{ mt: 5 }}>
+        <BannerSkeleton />
+        <HorizontalSkeleton />
+        <HorizontalSkeleton />
+        <HorizontalSkeleton />
       </Container>
     );
   }
