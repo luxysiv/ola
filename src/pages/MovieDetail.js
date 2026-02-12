@@ -1,16 +1,15 @@
-//src/pages/MovieDetail.js
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useParams } from "react-router-dom";
 import VideoPlayer from "../components/VideoPlayer";
+
 import {
   Container,
   Typography,
   Button,
   Stack,
-  Card,
-  CardMedia,
-  CardContent
+  Box,
+  Chip
 } from "@mui/material";
 
 function MovieDetail() {
@@ -20,57 +19,93 @@ function MovieDetail() {
   const [servers, setServers] = useState([]);
   const [currentServer, setCurrentServer] = useState(0);
   const [src, setSrc] = useState(null);
+  const [currentEp, setCurrentEp] = useState(null);
 
   useEffect(() => {
-    axios.get(`https://phimapi.com/phim/${slug}`)
+    axios
+      .get(`https://phimapi.com/phim/${slug}`)
       .then(res => {
         setMovie(res.data.movie);
-        setServers(res.data.episodes);
-
-        const first = res.data.episodes?.[0]?.server_data?.[0];
-        if (first) setSrc(first.link_m3u8);
-      });
+        setServers(res.data.episodes || []);
+        setSrc(null); // không auto play
+        setCurrentEp(null);
+      })
+      .catch(console.error);
   }, [slug]);
 
-  const episodeList = servers[currentServer]?.server_data || [];
+  const episodeList =
+    servers[currentServer]?.server_data || [];
+
+  const banner =
+    movie?.thumb_url || movie?.poster_url;
+
+  const handleSelectEpisode = (ep) => {
+    setSrc(ep.link_m3u8);
+    setCurrentEp(ep.name);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   return (
-    <Container sx={{ mt: 2 }}>
-      {movie && (
-        <Card sx={{ mb: 2 }}>
-          {/* Nếu chưa chọn tập thì hiển thị banner/thumbnail */}
-          {!src ? (
-            <CardMedia
-              component="img"
-              height="400"
-              image={movie.thumb_url || movie.poster_url}
-              alt={movie.name}
-            />
-          ) : (
-            <VideoPlayer src={src} />
-          )}
-          <CardContent>
-            <Typography variant="h5">{movie.name}</Typography>
-            <Typography variant="body2" sx={{ mb: 2 }}>
-              {movie.origin_name} ({movie.year})
-            </Typography>
-            <Typography variant="body2">
-              Thời lượng: {movie.time}
-            </Typography>
-            <Typography variant="body2">
-              Tập: {movie.episode_current}
-            </Typography>
-            <Typography variant="body2">
-              Thể loại: {movie.category.map(c => c.name).join(", ")}
-            </Typography>
-            <Typography variant="body2">
-              Diễn viên: {movie.actor.join(", ")}
-            </Typography>
-          </CardContent>
-        </Card>
+    <Container sx={{ mt: 2, mb: 5 }}>
+
+      {/* ===== Banner / Player ===== */}
+      {src ? (
+        <VideoPlayer src={src} />
+      ) : (
+        banner && (
+          <Box
+            sx={{
+              width: "100%",
+              height: 450,
+              backgroundImage: `url(${banner})`,
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+              borderRadius: 2,
+              mb: 2
+            }}
+          />
+        )
       )}
 
-      <Typography sx={{ mt: 2 }}>Server</Typography>
+      {/* ===== Info phim ===== */}
+      {movie && (
+        <>
+          <Typography variant="h4" fontWeight="bold">
+            {movie.name}
+          </Typography>
+
+          <Typography color="gray">
+            {movie.origin_name}
+          </Typography>
+
+          <Stack direction="row" spacing={1} mt={1} flexWrap="wrap">
+            <Chip label={movie.year} />
+            <Chip label={movie.quality} />
+            <Chip label={movie.lang} />
+            <Chip label={movie.time} />
+            <Chip label={movie.episode_current} />
+          </Stack>
+
+          <Typography sx={{ mt: 2 }}>
+            {movie.content}
+          </Typography>
+
+          <Typography sx={{ mt: 2 }}>
+            <b>Diễn viên:</b> {movie.actor?.join(", ")}
+          </Typography>
+
+          <Typography>
+            <b>Thể loại:</b>{" "}
+            {movie.category?.map(c => c.name).join(", ")}
+          </Typography>
+        </>
+      )}
+
+      {/* ===== Server ===== */}
+      <Typography sx={{ mt: 3 }} variant="h6">
+        Server
+      </Typography>
+
       <Stack direction="row" spacing={1} flexWrap="wrap">
         {servers.map((sv, i) => (
           <Button
@@ -78,7 +113,8 @@ function MovieDetail() {
             variant={i === currentServer ? "contained" : "outlined"}
             onClick={() => {
               setCurrentServer(i);
-              setSrc(sv.server_data[0].link_m3u8);
+              setSrc(null);
+              setCurrentEp(null);
             }}
           >
             {sv.server_name}
@@ -86,13 +122,21 @@ function MovieDetail() {
         ))}
       </Stack>
 
-      <Typography sx={{ mt: 2 }}>Danh sách tập</Typography>
+      {/* ===== Episode ===== */}
+      <Typography sx={{ mt: 3 }} variant="h6">
+        Danh sách tập
+      </Typography>
+
       <Stack direction="row" spacing={1} flexWrap="wrap">
         {episodeList.map((ep, i) => (
           <Button
             key={i}
-            variant="contained"
-            onClick={() => setSrc(ep.link_m3u8)}
+            variant={
+              currentEp === ep.name
+                ? "contained"
+                : "outlined"
+            }
+            onClick={() => handleSelectEpisode(ep)}
           >
             {ep.name}
           </Button>
