@@ -57,40 +57,45 @@ function BannerSection({ title, link, movies }) {
       >
         {movies.map(m => (
           <SwiperSlide key={m._id}>
-            <Box sx={{ position: "relative", width: "100%", height: "100%" }}>
-              <Box
-                component="img"
-                src={m.poster_url?.startsWith("http")
-                  ? m.poster_url
-                  : `https://phimimg.com/${m.poster_url}`}
-                alt={m.name}
-                sx={{
-                  width: "100%",
-                  height: "100%",
-                  objectFit: "cover",
-                  borderRadius: 3,
-                  boxShadow: 6
-                }}
-                onError={(e) => { e.target.src = "/no-image.jpg"; }}
-              />
-              <Box
-                sx={{
-                  position: "absolute",
-                  bottom: 0,
-                  left: 0,
-                  right: 0,
-                  p: { xs: 2, md: 4 },
-                  background: "linear-gradient(to top, rgba(0,0,0,0.6), transparent)"
-                }}
-              >
-                <Typography variant="h6" color="white" fontWeight="bold">
-                  {m.name}
-                </Typography>
-                <Typography variant="body2" color="white">
-                  {m.year} • {m.quality}
-                </Typography>
+            <Link to={`/phim/${m.slug}`} style={{ display: "block", width: "100%", height: "100%" }}>
+              <Box sx={{ position: "relative", width: "100%", height: "100%" }}>
+                <Box
+                  component="img"
+                  src={m.poster_url?.startsWith("http")
+                    ? m.poster_url
+                    : `https://phimimg.com/${m.poster_url}`}
+                  alt={m.name}
+                  sx={{
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "cover",
+                    borderRadius: 3,
+                    boxShadow: 6
+                  }}
+                  onError={(e) => { e.target.src = "/no-image.jpg"; }}
+                />
+                <Box
+                  sx={{
+                    position: "absolute",
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    p: { xs: 2, md: 4 },
+                    background: "linear-gradient(to top, rgba(0,0,0,0.6), transparent)"
+                  }}
+                >
+                  <Typography variant="h6" color="white" fontWeight="bold">
+                    {m.name}
+                  </Typography>
+                  <Typography variant="body2" color="white">
+                    {m.year} • {m.quality}
+                  </Typography>
+                  <Button variant="contained" color="primary" sx={{ mt: 2 }}>
+                    Xem ngay
+                  </Button>
+                </Box>
               </Box>
-            </Box>
+            </Link>
           </SwiperSlide>
         ))}
       </Swiper>
