@@ -1,30 +1,32 @@
 // src/pages/YearSelectPage.js
-import React from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Container, Typography, Select, MenuItem } from "@mui/material";
-
-const years = Array.from({ length: 26 }, (_, i) => 2000 + i);
+import { Container, Typography, TextField } from "@mui/material";
 
 function YearSelectPage() {
   const navigate = useNavigate();
+  const [year, setYear] = useState("");
+
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter" && year) {
+      navigate(`/nam/${year}`);
+    }
+  };
 
   return (
     <Container sx={{ mt: 3 }}>
       <Typography variant="h5" gutterBottom>
-        Chọn năm phát hành
+        Nhập năm phát hành
       </Typography>
-      <Select
+
+      <TextField
         fullWidth
-        value=""
-        onChange={e => navigate(`/nam/${e.target.value}`)}
-      >
-        <MenuItem value="">--Chọn năm--</MenuItem>
-        {years.map(y => (
-          <MenuItem key={y} value={y}>
-            {y}
-          </MenuItem>
-        ))}
-      </Select>
+        label="Nhập năm (ví dụ: 2024)"
+        value={year}
+        onChange={(e) => setYear(e.target.value)}
+        onKeyDown={handleKeyDown}
+        type="number"
+      />
     </Container>
   );
 }
