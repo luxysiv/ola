@@ -1,51 +1,63 @@
 // src/pages/TypeListPage.js
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { Link, useParams, useNavigate } from "react-router-dom";
+import { Link, useParams, useNavigate, useSearchParams } from "react-router-dom";
 
 import {
   Container,
   Typography,
-  Select,
-  MenuItem,
   Grid,
   Card,
   CardMedia,
   CardContent,
   CircularProgress,
-  Box
+  Box,
+  Pagination
 } from "@mui/material";
 
 function TypeListPage() {
   const { type_list } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const [movies, setMovies] = useState([]);
-  const [types] = useState([
-    { slug: "phim-bo", name: "Phim Bộ" },
-    { slug: "phim-le", name: "Phim Lẻ" },
-    { slug: "tv-shows", name: "TV Shows" },
-    { slug: "hoat-hinh", name: "Hoạt Hình" },
-    { slug: "phim-vietsub", name: "Phim Vietsub" },
-    { slug: "phim-thuyet-minh", name: "Phim Thuyết Minh" },
-    { slug: "phim-long-tieng", name: "Phim Lồng Tiếng" }
-  ]);
   const [loading, setLoading] = useState(false);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
-  // load phim theo type_list
+  // đọc page từ URL
   useEffect(() => {
+    const pg = parseInt(searchParams.get("trang") || "1", 10);
+    handleFetch(pg);
+  }, [type_list]);
+
+  const handleFetch = async (pageNum = 1) => {
     if (!type_list) return;
 
     setLoading(true);
 
-    axios
-      .get(`https://phimapi.com/v1/api/danh-sach/${type_list}?page=1`)
-      .then(res => {
-        setMovies(res.data.data.items || []);
-      })
-      .catch(() => setMovies([]))
-      .finally(() => setLoading(false));
-  }, [type_list]);
+    try {
+      const res = await axios.get(
+        `https://phimapi.com/v1/api/danh-sach/${type_list}?page=${pageNum}`
+      );
+
+      const data = res.data.data;
+
+      setMovies(data.items || []);
+      setTotalPages(data.params?.pagination?.totalPages || 1);
+      setPage(pageNum);
+
+      // update URL
+      navigate(`/danh-sach/${type_list}?trang=${pageNum}`, {
+        replace: false
+      });
+
+    } catch (error) {
+      setMovies([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <Container sx={{ mt: 3 }}>
@@ -53,57 +65,58 @@ function TypeListPage() {
         Danh sách: {type_list}
       </Typography>
 
-      {/* Dropdown chọn loại phim */}
-      <Select
-        fullWidth
-        value={type_list || ""}
-        onChange={e =>
-          navigate(`/danh-sach/${e.target.value}`)
-        }
-      >
-        <MenuItem value="">--Chọn loại phim--</MenuItem>
-        {types.map(t => (
-          <MenuItem key={t.slug} value={t.slug}>
-            {t.name}
-          </MenuItem>
-        ))}
-      </Select>
-
-      {/* Loading */}
-      {loading && (
+      {loading ? (
         <Box sx={{ textAlign: "center", mt: 3 }}>
           <CircularProgress />
         </Box>
-      )}
-
-      {/* Danh sách phim */}
-      <Grid container spacing={2} sx={{ mt: 2 }}>
-        {movies.map(m => (
-          <Grid item xs={6} sm={4} md={3} lg={2} key={m._id}>
-            <Card>
-              <Link to={`/phim/${m.slug}`}>
-                <CardMedia
-                  component="img"
-                  height="250"
-                  image={`https://phimimg.com/${m.poster_url}`}
-                  onError={(e) => {
-                    e.target.src = "/no-image.jpg";
+      ) : (
+        <>
+          <Grid container spacing={2} sx={{ mt: 2 }}>
+            {movies.map(m => (
+              <Grid item xs={6} sm={4} md={3} lg={2} key={m._id}>
+                <Card
+                  sx={{
+                    transition: "transform 0.3s",
+                    "&:hover": { transform: "scale(1.05)" }
                   }}
-                />
-              </Link>
+                >
+                  <Link to={`/phim/${m.slug}`}>
+                    <CardMedia
+                      component="img"
+                      height="250"
+                      image={`https://phimimg.com/${m.poster_url}`}
+                      onError={(e) => {
+                        e.target.src = "/no-image.jpg";
+                      }}
+                    />
+                  </Link>
 
-              <CardContent>
-                <Typography variant="body2" noWrap>
-                  {m.name}
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  {m.year} • {m.quality}
-                </Typography>
-              </CardContent>
-            </Card>
+                  <CardContent>
+                    <Typography variant="body2" noWrap>
+                      {m.name}
+                    </Typography>
+
+                    <Typography variant="caption" color="text.secondary">
+                      {m.year} • {m.quality}
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+            ))}
           </Grid>
-        ))}
-      </Grid>
+
+          {totalPages > 1 && (
+            <Box display="flex" justifyContent="center" mt={3}>
+              <Pagination
+                count={totalPages}
+                page={page}
+                onChange={(e, value) => handleFetch(value)}
+                color="primary"
+              />
+            </Box>
+          )}
+        </>
+      )}
     </Container>
   );
 }
