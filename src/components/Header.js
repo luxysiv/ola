@@ -60,7 +60,6 @@ function Header() {
     <>
       <AppBar position="static" sx={{ backgroundColor: "#1c1c1c" }}>
         <Toolbar sx={{ display: "flex", justifyContent: "space-between" }}>
-          {/* Logo */}
           <Typography
             variant="h6"
             sx={{ cursor: "pointer", fontWeight: "bold" }}
@@ -69,7 +68,6 @@ function Header() {
             Hdophim
           </Typography>
 
-          {/* Menu desktop */}
           {isDesktop ? (
             <Box sx={{ display: "flex", gap: 2 }}>
               <Button color="inherit" onClick={() => navigate("/danh-sach/phim-bo")}>Phim Bộ</Button>
@@ -85,7 +83,6 @@ function Header() {
             </IconButton>
           )}
 
-          {/* Search */}
           <IconButton color="inherit" onClick={() => navigate("/tim-kiem")}>
             <SearchIcon />
           </IconButton>
