@@ -61,13 +61,14 @@ function Header() {
   const toggleDrawer = () => setOpen(!open);
 
   const goToYear = (y) => {
-    if (y) {
-      navigate(`/nam/${y}`);
-      // close drawer on mobile
-      if (!isDesktop) toggleDrawer();
-      // close desktop menu if open
-      setAnchorYear(null);
-    }
+    if (!y) return;
+    navigate(`/nam/${y}`);
+    // close drawer on mobile
+    if (!isDesktop) toggleDrawer();
+    // close desktop menu if open
+    setAnchorYear(null);
+    // clear input
+    setYearInput("");
   };
 
   // generate years for dropdown (current year down to 1980)
@@ -90,9 +91,8 @@ function Header() {
     <>
       <AppBar position="static" sx={{ backgroundColor: "#111", color: "#fff" }}>
         <Toolbar sx={{ display: "flex", justifyContent: "space-between", gap: 2 }}>
-          {/* Left: logo */}
+          {/* Left: logo and mobile menu icon */}
           <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-            {/** On mobile show menu icon left; on desktop we keep logo left */}
             {!isDesktop && (
               <IconButton color="inherit" edge="start" onClick={toggleDrawer}>
                 <MenuIcon />
@@ -182,7 +182,7 @@ function Header() {
                   <MenuItem key={y} onClick={() => goToYear(y)}>{y}</MenuItem>
                 ))}
                 <Divider />
-                <Box sx={{ px: 2, py: 1 }}>
+                <Box sx={{ px: 2, py: 1, display: "flex", alignItems: "center", gap: 1 }}>
                   <TextField
                     size="small"
                     label="Nhập năm"
@@ -192,7 +192,6 @@ function Header() {
                     onKeyDown={(e) => {
                       if (e.key === "Enter" && yearInput) {
                         goToYear(yearInput);
-                        setYearInput("");
                       }
                     }}
                     InputProps={{ sx: { width: 120 } }}
@@ -200,12 +199,8 @@ function Header() {
                   <Button
                     variant="contained"
                     size="small"
-                    sx={{ ml: 1 }}
                     onClick={() => {
-                      if (yearInput) {
-                        goToYear(yearInput);
-                        setYearInput("");
-                      }
+                      if (yearInput) goToYear(yearInput);
                     }}
                   >
                     Go
@@ -238,15 +233,11 @@ function Header() {
             </Box>
           )}
 
-          {/* Right: search icon (and on mobile the menu icon is left) */}
+          {/* Right: search icon */}
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
             <IconButton color="inherit" onClick={() => navigate("/tim-kiem")}>
               <SearchIcon />
             </IconButton>
-            {/* On mobile, keep logo left; on desktop no extra icon */}
-            {!isDesktop && (
-              <Typography variant="body2" sx={{ ml: 1 }}></Typography>
-            )}
           </Box>
         </Toolbar>
       </AppBar>
@@ -324,17 +315,13 @@ function Header() {
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && yearInput) {
                       goToYear(yearInput);
-                      setYearInput("");
                     }
                   }}
                 />
                 <Button
                   variant="contained"
                   onClick={() => {
-                    if (yearInput) {
-                      goToYear(yearInput);
-                      setYearInput("");
-                    }
+                    if (yearInput) goToYear(yearInput);
                   }}
                 >
                   Enter
