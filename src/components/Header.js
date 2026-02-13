@@ -12,7 +12,8 @@ import {
   Divider,
   Box,
   Collapse,
-  TextField
+  TextField,
+  Button
 } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
 import SearchIcon from "@mui/icons-material/Search";
@@ -46,6 +47,13 @@ function Header() {
 
   const toggleDrawer = () => setOpen(!open);
 
+  const goToYear = () => {
+    if (yearInput) {
+      navigate(`/nam/${yearInput}`);
+      toggleDrawer();
+    }
+  };
+
   return (
     <>
       <AppBar position="static">
@@ -70,7 +78,7 @@ function Header() {
 
       <Drawer anchor="left" open={open} onClose={toggleDrawer}>
         <Box sx={{ width: 250 }} role="presentation">
-          
+
           {/* Thể loại */}
           <List>
             <ListItem button onClick={() => setOpenCategory(!openCategory)}>
@@ -130,7 +138,7 @@ function Header() {
               {openYear ? <ExpandLess /> : <ExpandMore />}
             </ListItem>
             <Collapse in={openYear} timeout="auto" unmountOnExit>
-              <Box sx={{ p: 2 }}>
+              <Box sx={{ p: 2, display: "flex", gap: 1 }}>
                 <TextField
                   fullWidth
                   size="small"
@@ -139,12 +147,15 @@ function Header() {
                   value={yearInput}
                   onChange={(e) => setYearInput(e.target.value)}
                   onKeyDown={(e) => {
-                    if (e.key === "Enter" && yearInput) {
-                      navigate(`/nam/${yearInput}`);
-                      toggleDrawer();
-                    }
+                    if (e.key === "Enter") goToYear();
                   }}
                 />
+                <Button
+                  variant="contained"
+                  onClick={goToYear}
+                >
+                  Enter
+                </Button>
               </Box>
             </Collapse>
           </List>
