@@ -11,7 +11,8 @@ import {
   ListItemText,
   Divider,
   Box,
-  Collapse
+  Collapse,
+  TextField
 } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
 import SearchIcon from "@mui/icons-material/Search";
@@ -29,6 +30,8 @@ function Header() {
 
   const [categories, setCategories] = useState([]);
   const [countries, setCountries] = useState([]);
+  const [yearInput, setYearInput] = useState("");
+
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -51,7 +54,6 @@ function Header() {
             <MenuIcon />
           </IconButton>
 
-          {/* Logo Hdophim dẫn về trang chủ */}
           <Typography
             variant="h6"
             sx={{ flexGrow: 1, cursor: "pointer" }}
@@ -60,7 +62,6 @@ function Header() {
             Hdophim
           </Typography>
 
-          {/* Nút tìm kiếm bằng icon */}
           <IconButton color="inherit" onClick={() => navigate("/tim-kiem")}>
             <SearchIcon />
           </IconButton>
@@ -69,6 +70,7 @@ function Header() {
 
       <Drawer anchor="left" open={open} onClose={toggleDrawer}>
         <Box sx={{ width: 250 }} role="presentation">
+          
           {/* Thể loại */}
           <List>
             <ListItem button onClick={() => setOpenCategory(!openCategory)}>
@@ -121,27 +123,29 @@ function Header() {
 
           <Divider />
 
-          {/* Năm */}
+          {/* Năm phát hành */}
           <List>
             <ListItem button onClick={() => setOpenYear(!openYear)}>
               <ListItemText primary="Năm phát hành" />
               {openYear ? <ExpandLess /> : <ExpandMore />}
             </ListItem>
             <Collapse in={openYear} timeout="auto" unmountOnExit>
-              <List component="div" disablePadding>
-                {Array.from({ length: 26 }, (_, i) => 2000 + i).map(y => (
-                  <ListItem
-                    button
-                    key={y}
-                    onClick={() => {
-                      navigate(`/nam/${y}`);
+              <Box sx={{ p: 2 }}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="Nhập năm"
+                  type="number"
+                  value={yearInput}
+                  onChange={(e) => setYearInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && yearInput) {
+                      navigate(`/nam/${yearInput}`);
                       toggleDrawer();
-                    }}
-                  >
-                    <ListItemText primary={y} />
-                  </ListItem>
-                ))}
-              </List>
+                    }
+                  }}
+                />
+              </Box>
             </Collapse>
           </List>
 
@@ -178,6 +182,7 @@ function Header() {
               </List>
             </Collapse>
           </List>
+
         </Box>
       </Drawer>
     </>
