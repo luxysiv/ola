@@ -14,7 +14,9 @@ import {
   Collapse,
   TextField,
   Button,
-  useMediaQuery
+  useMediaQuery,
+  Menu,
+  MenuItem
 } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
 import SearchIcon from "@mui/icons-material/Search";
@@ -25,17 +27,26 @@ import axios from "axios";
 
 function Header() {
   const [open, setOpen] = useState(false);
+
+  // Drawer accordion states (mobile)
   const [openCategory, setOpenCategory] = useState(false);
   const [openCountry, setOpenCountry] = useState(false);
   const [openYear, setOpenYear] = useState(false);
   const [openType, setOpenType] = useState(false);
 
+  // Data
   const [categories, setCategories] = useState([]);
   const [countries, setCountries] = useState([]);
   const [yearInput, setYearInput] = useState("");
 
   const navigate = useNavigate();
   const isDesktop = useMediaQuery("(min-width:900px)");
+
+  // Desktop dropdown anchors
+  const [anchorCategory, setAnchorCategory] = useState(null);
+  const [anchorCountry, setAnchorCountry] = useState(null);
+  const [anchorYear, setAnchorYear] = useState(null);
+  const [anchorType, setAnchorType] = useState(null);
 
   useEffect(() => {
     axios.get("https://phimapi.com/the-loai")
@@ -49,50 +60,200 @@ function Header() {
 
   const toggleDrawer = () => setOpen(!open);
 
-  const goToYear = () => {
-    if (yearInput) {
-      navigate(`/nam/${yearInput}`);
-      toggleDrawer();
+  const goToYear = (y) => {
+    if (y) {
+      navigate(`/nam/${y}`);
+      // close drawer on mobile
+      if (!isDesktop) toggleDrawer();
+      // close desktop menu if open
+      setAnchorYear(null);
     }
   };
 
+  // generate years for dropdown (current year down to 1980)
+  const currentYear = new Date().getFullYear();
+  const years = [];
+  for (let y = currentYear; y >= 1980; y--) years.push(y);
+
+  // static types
+  const types = [
+    { slug: "phim-bo", name: "Phim Bộ" },
+    { slug: "phim-le", name: "Phim Lẻ" },
+    { slug: "tv-shows", name: "TV Shows" },
+    { slug: "hoat-hinh", name: "Hoạt Hình" },
+    { slug: "phim-vietsub", name: "Phim Vietsub" },
+    { slug: "phim-thuyet-minh", name: "Phim Thuyết Minh" },
+    { slug: "phim-long-tieng", name: "Phim Lồng Tiếng" }
+  ];
+
   return (
     <>
-      <AppBar position="static" sx={{ backgroundColor: "#1c1c1c" }}>
-        <Toolbar sx={{ display: "flex", justifyContent: "space-between" }}>
-          <Typography
-            variant="h6"
-            sx={{ cursor: "pointer", fontWeight: "bold" }}
-            onClick={() => navigate("/")}
-          >
-            Hdophim
-          </Typography>
+      <AppBar position="static" sx={{ backgroundColor: "#111", color: "#fff" }}>
+        <Toolbar sx={{ display: "flex", justifyContent: "space-between", gap: 2 }}>
+          {/* Left: logo */}
+          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+            {/** On mobile show menu icon left; on desktop we keep logo left */}
+            {!isDesktop && (
+              <IconButton color="inherit" edge="start" onClick={toggleDrawer}>
+                <MenuIcon />
+              </IconButton>
+            )}
 
-          {isDesktop ? (
-            <Box sx={{ display: "flex", gap: 2 }}>
-              <Button color="inherit" onClick={() => navigate("/danh-sach/phim-bo")}>Phim Bộ</Button>
-              <Button color="inherit" onClick={() => navigate("/danh-sach/phim-le")}>Phim Lẻ</Button>
-              <Button color="inherit" onClick={() => navigate("/danh-sach/tv-shows")}>TV Shows</Button>
-              <Button color="inherit" onClick={() => navigate("/danh-sach/hoat-hinh")}>Hoạt Hình</Button>
-              <Button color="inherit" onClick={() => navigate("/quoc-gia")}>Quốc gia</Button>
-              <Button color="inherit" onClick={() => navigate("/nam/2025")}>Năm</Button>
+            <Typography
+              variant="h6"
+              sx={{ cursor: "pointer", fontWeight: 700 }}
+              onClick={() => navigate("/")}
+            >
+              Hdophim
+            </Typography>
+          </Box>
+
+          {/* Center: desktop horizontal menu with dropdowns */}
+          {isDesktop && (
+            <Box sx={{ display: "flex", gap: 1, alignItems: "center", flexGrow: 1, justifyContent: "center" }}>
+              <Button
+                color="inherit"
+                onClick={(e) => setAnchorCategory(e.currentTarget)}
+                sx={{ textTransform: "none", fontWeight: 500 }}
+              >
+                Thể loại
+              </Button>
+              <Menu
+                anchorEl={anchorCategory}
+                open={Boolean(anchorCategory)}
+                onClose={() => setAnchorCategory(null)}
+                MenuListProps={{ sx: { maxHeight: 320 } }}
+              >
+                {categories.length === 0 ? (
+                  <MenuItem disabled>Không có dữ liệu</MenuItem>
+                ) : (
+                  categories.map(c => (
+                    <MenuItem
+                      key={c._id}
+                      onClick={() => { navigate(`/the-loai/${c.slug}`); setAnchorCategory(null); }}
+                    >
+                      {c.name}
+                    </MenuItem>
+                  ))
+                )}
+              </Menu>
+
+              <Button
+                color="inherit"
+                onClick={(e) => setAnchorCountry(e.currentTarget)}
+                sx={{ textTransform: "none", fontWeight: 500 }}
+              >
+                Quốc gia
+              </Button>
+              <Menu
+                anchorEl={anchorCountry}
+                open={Boolean(anchorCountry)}
+                onClose={() => setAnchorCountry(null)}
+                MenuListProps={{ sx: { maxHeight: 320 } }}
+              >
+                {countries.length === 0 ? (
+                  <MenuItem disabled>Không có dữ liệu</MenuItem>
+                ) : (
+                  countries.map(c => (
+                    <MenuItem
+                      key={c._id}
+                      onClick={() => { navigate(`/quoc-gia/${c.slug}`); setAnchorCountry(null); }}
+                    >
+                      {c.name}
+                    </MenuItem>
+                  ))
+                )}
+              </Menu>
+
+              <Button
+                color="inherit"
+                onClick={(e) => setAnchorYear(e.currentTarget)}
+                sx={{ textTransform: "none", fontWeight: 500 }}
+              >
+                Năm phát hành
+              </Button>
+              <Menu
+                anchorEl={anchorYear}
+                open={Boolean(anchorYear)}
+                onClose={() => setAnchorYear(null)}
+                MenuListProps={{ sx: { maxHeight: 360 } }}
+              >
+                {years.map(y => (
+                  <MenuItem key={y} onClick={() => goToYear(y)}>{y}</MenuItem>
+                ))}
+                <Divider />
+                <Box sx={{ px: 2, py: 1 }}>
+                  <TextField
+                    size="small"
+                    label="Nhập năm"
+                    type="number"
+                    value={yearInput}
+                    onChange={(e) => setYearInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && yearInput) {
+                        goToYear(yearInput);
+                        setYearInput("");
+                      }
+                    }}
+                    InputProps={{ sx: { width: 120 } }}
+                  />
+                  <Button
+                    variant="contained"
+                    size="small"
+                    sx={{ ml: 1 }}
+                    onClick={() => {
+                      if (yearInput) {
+                        goToYear(yearInput);
+                        setYearInput("");
+                      }
+                    }}
+                  >
+                    Go
+                  </Button>
+                </Box>
+              </Menu>
+
+              <Button
+                color="inherit"
+                onClick={(e) => setAnchorType(e.currentTarget)}
+                sx={{ textTransform: "none", fontWeight: 500 }}
+              >
+                Loại phim
+              </Button>
+              <Menu
+                anchorEl={anchorType}
+                open={Boolean(anchorType)}
+                onClose={() => setAnchorType(null)}
+                MenuListProps={{ sx: { maxHeight: 320 } }}
+              >
+                {types.map(t => (
+                  <MenuItem
+                    key={t.slug}
+                    onClick={() => { navigate(`/danh-sach/${t.slug}`); setAnchorType(null); }}
+                  >
+                    {t.name}
+                  </MenuItem>
+                ))}
+              </Menu>
             </Box>
-          ) : (
-            <IconButton color="inherit" edge="start" onClick={toggleDrawer}>
-              <MenuIcon />
-            </IconButton>
           )}
 
-          <IconButton color="inherit" onClick={() => navigate("/tim-kiem")}>
-            <SearchIcon />
-          </IconButton>
+          {/* Right: search icon (and on mobile the menu icon is left) */}
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <IconButton color="inherit" onClick={() => navigate("/tim-kiem")}>
+              <SearchIcon />
+            </IconButton>
+            {/* On mobile, keep logo left; on desktop no extra icon */}
+            {!isDesktop && (
+              <Typography variant="body2" sx={{ ml: 1 }}></Typography>
+            )}
+          </Box>
         </Toolbar>
       </AppBar>
 
-      {/* Drawer cho mobile */}
+      {/* Drawer for mobile (keeps original accordion content) */}
       <Drawer anchor="left" open={open} onClose={toggleDrawer}>
         <Box sx={{ width: 250 }} role="presentation">
-
           {/* Thể loại */}
           <List>
             <ListItem button onClick={() => setOpenCategory(!openCategory)}>
@@ -161,12 +322,20 @@ function Header() {
                   value={yearInput}
                   onChange={(e) => setYearInput(e.target.value)}
                   onKeyDown={(e) => {
-                    if (e.key === "Enter") goToYear();
+                    if (e.key === "Enter" && yearInput) {
+                      goToYear(yearInput);
+                      setYearInput("");
+                    }
                   }}
                 />
                 <Button
                   variant="contained"
-                  onClick={goToYear}
+                  onClick={() => {
+                    if (yearInput) {
+                      goToYear(yearInput);
+                      setYearInput("");
+                    }
+                  }}
                 >
                   Enter
                 </Button>
@@ -184,15 +353,7 @@ function Header() {
             </ListItem>
             <Collapse in={openType} timeout="auto" unmountOnExit>
               <List component="div" disablePadding>
-                {[
-                  { slug: "phim-bo", name: "Phim Bộ" },
-                  { slug: "phim-le", name: "Phim Lẻ" },
-                  { slug: "tv-shows", name: "TV Shows" },
-                  { slug: "hoat-hinh", name: "Hoạt Hình" },
-                  { slug: "phim-vietsub", name: "Phim Vietsub" },
-                  { slug: "phim-thuyet-minh", name: "Phim Thuyết Minh" },
-                  { slug: "phim-long-tieng", name: "Phim Lồng Tiếng" }
-                ].map(t => (
+                {types.map(t => (
                   <ListItem
                     button
                     key={t.slug}
@@ -207,7 +368,6 @@ function Header() {
               </List>
             </Collapse>
           </List>
-
         </Box>
       </Drawer>
     </>
