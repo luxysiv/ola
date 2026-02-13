@@ -1,13 +1,11 @@
 // src/pages/CategoryPage.js
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { Link, useParams, useNavigate } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 
 import {
   Container,
   Typography,
-  Select,
-  MenuItem,
   Grid,
   Card,
   CardMedia,
@@ -18,18 +16,9 @@ import {
 
 function CategoryPage() {
   const { category } = useParams();
-  const navigate = useNavigate();
 
   const [movies, setMovies] = useState([]);
-  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
-
-  // load danh sách thể loại
-  useEffect(() => {
-    axios.get("https://phimapi.com/the-loai")
-      .then(res => setCategories(res.data || []))
-      .catch(() => setCategories([]));
-  }, []);
 
   // load phim theo thể loại
   useEffect(() => {
@@ -51,23 +40,6 @@ function CategoryPage() {
       <Typography variant="h5" gutterBottom>
         Thể loại: {category}
       </Typography>
-
-      {/* Dropdown chọn thể loại */}
-      <Select
-        fullWidth
-        value={category || ""}
-        onChange={e =>
-          navigate(`/the-loai/${e.target.value}`)
-        }
-      >
-        <MenuItem value="">--Chọn thể loại--</MenuItem>
-
-        {categories.map(c => (
-          <MenuItem key={c._id} value={c.slug}>
-            {c.name}
-          </MenuItem>
-        ))}
-      </Select>
 
       {/* Loading */}
       {loading && (
