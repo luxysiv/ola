@@ -6,7 +6,7 @@ import {
   IconButton,
   Typography,
   Drawer,
-  List,
+ List,
   ListItem,
   ListItemText,
   Divider,
@@ -31,12 +31,13 @@ function Header() {
   const isDesktop = useMediaQuery(theme.breakpoints.up("md"));
 
   const [open, setOpen] = useState(false);
+
   const [openCategory, setOpenCategory] = useState(false);
   const [openCountry, setOpenCountry] = useState(false);
   const [openYear, setOpenYear] = useState(false);
   const [openType, setOpenType] = useState(false);
 
-  // menu desktop anchors
+  // anchor dropdown desktop
   const [anchorCategory, setAnchorCategory] = useState(null);
   const [anchorCountry, setAnchorCountry] = useState(null);
   const [anchorYear, setAnchorYear] = useState(null);
@@ -64,7 +65,7 @@ function Header() {
     if (yearInput) {
       navigate(`/nam/${yearInput}`);
       setAnchorYear(null);
-      toggleDrawer();
+      setOpen(false);
     }
   };
 
@@ -83,7 +84,7 @@ function Header() {
       <AppBar position="static">
         <Toolbar>
 
-          {/* Mobile menu button */}
+          {/* Mobile menu icon */}
           {!isDesktop && (
             <IconButton color="inherit" onClick={toggleDrawer}>
               <MenuIcon />
@@ -125,13 +126,17 @@ function Header() {
             </Box>
           )}
 
-          <IconButton color="inherit" onClick={() => navigate("/tim-kiem")}>
+          <IconButton
+            color="inherit"
+            onClick={() => navigate("/tim-kiem")}
+          >
             <SearchIcon />
           </IconButton>
+
         </Toolbar>
       </AppBar>
 
-      {/* ================= DESKTOP DROPDOWN ================= */}
+      {/* ===== DESKTOP DROPDOWN ===== */}
 
       {/* Category */}
       <Menu
@@ -140,10 +145,13 @@ function Header() {
         onClose={() => setAnchorCategory(null)}
       >
         {categories.map(c => (
-          <MenuItem key={c._id} onClick={() => {
-            navigate(`/the-loai/${c.slug}`);
-            setAnchorCategory(null);
-          }}>
+          <MenuItem
+            key={c._id}
+            onClick={() => {
+              navigate(`/the-loai/${c.slug}`);
+              setAnchorCategory(null);
+            }}
+          >
             {c.name}
           </MenuItem>
         ))}
@@ -156,10 +164,13 @@ function Header() {
         onClose={() => setAnchorCountry(null)}
       >
         {countries.map(c => (
-          <MenuItem key={c._id} onClick={() => {
-            navigate(`/quoc-gia/${c.slug}`);
-            setAnchorCountry(null);
-          }}>
+          <MenuItem
+            key={c._id}
+            onClick={() => {
+              navigate(`/quoc-gia/${c.slug}`);
+              setAnchorCountry(null);
+            }}
+          >
             {c.name}
           </MenuItem>
         ))}
@@ -195,18 +206,131 @@ function Header() {
         onClose={() => setAnchorType(null)}
       >
         {typeList.map(t => (
-          <MenuItem key={t.slug} onClick={() => {
-            navigate(`/danh-sach/${t.slug}`);
-            setAnchorType(null);
-          }}>
+          <MenuItem
+            key={t.slug}
+            onClick={() => {
+              navigate(`/danh-sach/${t.slug}`);
+              setAnchorType(null);
+            }}
+          >
             {t.name}
           </MenuItem>
         ))}
       </Menu>
 
-      {/* ================= MOBILE DRAWER (giữ nguyên) ================= */}
+      {/* ===== MOBILE DRAWER ===== */}
       <Drawer anchor="left" open={open} onClose={toggleDrawer}>
-        {/* Giữ nguyên Drawer cũ của bạn */}
+        <Box sx={{ width: 250 }}>
+
+          {/* Thể loại */}
+          <List>
+            <ListItem button onClick={() => setOpenCategory(!openCategory)}>
+              <ListItemText primary="Thể loại" />
+              {openCategory ? <ExpandLess /> : <ExpandMore />}
+            </ListItem>
+
+            <Collapse in={openCategory}>
+              <List component="div" disablePadding>
+                {categories.map(c => (
+                  <ListItem
+                    button
+                    key={c._id}
+                    onClick={() => {
+                      navigate(`/the-loai/${c.slug}`);
+                      toggleDrawer();
+                    }}
+                  >
+                    <ListItemText primary={c.name} />
+                  </ListItem>
+                ))}
+              </List>
+            </Collapse>
+          </List>
+
+          <Divider />
+
+          {/* Quốc gia */}
+          <List>
+            <ListItem button onClick={() => setOpenCountry(!openCountry)}>
+              <ListItemText primary="Quốc gia" />
+              {openCountry ? <ExpandLess /> : <ExpandMore />}
+            </ListItem>
+
+            <Collapse in={openCountry}>
+              <List component="div" disablePadding>
+                {countries.map(c => (
+                  <ListItem
+                    button
+                    key={c._id}
+                    onClick={() => {
+                      navigate(`/quoc-gia/${c.slug}`);
+                      toggleDrawer();
+                    }}
+                  >
+                    <ListItemText primary={c.name} />
+                  </ListItem>
+                ))}
+              </List>
+            </Collapse>
+          </List>
+
+          <Divider />
+
+          {/* Năm */}
+          <List>
+            <ListItem button onClick={() => setOpenYear(!openYear)}>
+              <ListItemText primary="Năm phát hành" />
+              {openYear ? <ExpandLess /> : <ExpandMore />}
+            </ListItem>
+
+            <Collapse in={openYear}>
+              <Box sx={{ p: 2, display: "flex", gap: 1 }}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  type="number"
+                  label="Nhập năm"
+                  value={yearInput}
+                  onChange={(e) => setYearInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") goToYear();
+                  }}
+                />
+                <Button variant="contained" onClick={goToYear}>
+                  Enter
+                </Button>
+              </Box>
+            </Collapse>
+          </List>
+
+          <Divider />
+
+          {/* Loại phim */}
+          <List>
+            <ListItem button onClick={() => setOpenType(!openType)}>
+              <ListItemText primary="Loại phim" />
+              {openType ? <ExpandLess /> : <ExpandMore />}
+            </ListItem>
+
+            <Collapse in={openType}>
+              <List component="div" disablePadding>
+                {typeList.map(t => (
+                  <ListItem
+                    button
+                    key={t.slug}
+                    onClick={() => {
+                      navigate(`/danh-sach/${t.slug}`);
+                      toggleDrawer();
+                    }}
+                  >
+                    <ListItemText primary={t.name} />
+                  </ListItem>
+                ))}
+              </List>
+            </Collapse>
+          </List>
+
+        </Box>
       </Drawer>
     </>
   );
