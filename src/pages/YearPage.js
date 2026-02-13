@@ -1,41 +1,62 @@
-//src/pages/YearPage.js
+// src/pages/YearPage.js
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { Link, useParams, useNavigate } from "react-router-dom";
+import { Link, useParams, useNavigate, useSearchParams } from "react-router-dom";
 import {
   Container,
   Typography,
-  Select,
-  MenuItem,
   Grid,
   Card,
   CardMedia,
   CardContent,
   CircularProgress,
-  Box
+  Box,
+  Pagination
 } from "@mui/material";
-
-const years = Array.from({ length: 26 }, (_, i) => 2000 + i);
 
 function YearPage() {
   const { year } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const [movies, setMovies] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
+  // đọc page từ URL
   useEffect(() => {
+    const pg = parseInt(searchParams.get("trang") || "1", 10);
+    handleFetch(pg);
+  }, [year]);
+
+  const handleFetch = async (pageNum = 1) => {
     if (!year) return;
+
     setLoading(true);
 
-    axios
-      .get(`https://phimapi.com/v1/api/nam/${year}?page=1`)
-      .then(res => {
-        setMovies(res.data?.data?.items || []);
-      })
-      .catch(() => setMovies([]))
-      .finally(() => setLoading(false));
-  }, [year]);
+    try {
+      const res = await axios.get(
+        `https://phimapi.com/v1/api/nam/${year}?page=${pageNum}`
+      );
+
+      const data = res.data?.data;
+
+      setMovies(data?.items || []);
+      setTotalPages(data?.params?.pagination?.totalPages || 1);
+      setPage(pageNum);
+
+      // update URL
+      navigate(`/nam/${year}?trang=${pageNum}`, {
+        replace: false
+      });
+
+    } catch (error) {
+      setMovies([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <Container sx={{ mt: 3 }}>
@@ -43,46 +64,55 @@ function YearPage() {
         Năm phát hành: {year}
       </Typography>
 
-      <Select
-        fullWidth
-        value={year || ""}
-        onChange={e => navigate(`/nam/${e.target.value}`)}
-      >
-        <MenuItem value="">--Chọn năm--</MenuItem>
-        {years.map(y => (
-          <MenuItem key={y} value={y}>
-            {y}
-          </MenuItem>
-        ))}
-      </Select>
-
-      {loading && (
+      {loading ? (
         <Box sx={{ textAlign: "center", mt: 3 }}>
           <CircularProgress />
         </Box>
-      )}
+      ) : (
+        <>
+          <Grid container spacing={2} sx={{ mt: 2 }}>
+            {movies.map(m => (
+              <Grid item xs={6} sm={4} md={3} lg={2} key={m._id}>
+                <Card
+                  sx={{
+                    transition: "transform 0.3s",
+                    "&:hover": { transform: "scale(1.05)" }
+                  }}
+                >
+                  <Link to={`/phim/${m.slug}`}>
+                    <CardMedia
+                      component="img"
+                      height="250"
+                      image={`https://phimimg.com/${m.poster_url}`}
+                    />
+                  </Link>
 
-      <Grid container spacing={2} sx={{ mt: 2 }}>
-        {movies.map(m => (
-          <Grid item xs={6} sm={4} md={3} lg={2} key={m._id}>
-            <Card>
-              <Link to={`/phim/${m.slug}`}>
-                <CardMedia
-                  component="img"
-                  height="250"
-                  image={`https://phimimg.com/${m.poster_url}`}
-                />
-              </Link>
-              <CardContent>
-                <Typography variant="body2">{m.name}</Typography>
-                <Typography variant="caption" color="text.secondary">
-                  {m.year} • {m.quality}
-                </Typography>
-              </CardContent>
-            </Card>
+                  <CardContent>
+                    <Typography variant="body2">
+                      {m.name}
+                    </Typography>
+
+                    <Typography variant="caption" color="text.secondary">
+                      {m.year} • {m.quality}
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+            ))}
           </Grid>
-        ))}
-      </Grid>
+
+          {totalPages > 1 && (
+            <Box display="flex" justifyContent="center" mt={3}>
+              <Pagination
+                count={totalPages}
+                page={page}
+                onChange={(e, value) => handleFetch(value)}
+                color="primary"
+              />
+            </Box>
+          )}
+        </>
+      )}
     </Container>
   );
 }
