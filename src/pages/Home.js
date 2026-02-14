@@ -1,4 +1,3 @@
-// src/pages/Home.js
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { Link } from "react-router-dom";
@@ -20,17 +19,10 @@ import "swiper/css/pagination";
 import "swiper/css/navigation";
 import "swiper/css/effect-coverflow";
 
+// --- Skeletons ---
 function MovieCardSkeleton() {
   return (
-    <Card
-      sx={{
-        minWidth: 160,
-        borderRadius: 2,
-        boxShadow: 2,
-        p: 1,
-        flex: "0 0 auto"
-      }}
-    >
+    <Card sx={{ minWidth: 160, borderRadius: 2, boxShadow: 2, p: 1, flex: "0 0 auto" }}>
       <Skeleton variant="rectangular" height={220} sx={{ borderRadius: 2 }} animation="wave" />
       <CardContent sx={{ textAlign: "center" }}>
         <Skeleton variant="text" width="80%" height={20} animation="wave" />
@@ -60,20 +52,13 @@ function HorizontalSkeleton() {
         <Skeleton variant="rectangular" width={80} height={30} animation="wave" />
       </Box>
       <Box sx={{ display: "flex", gap: 2, overflowX: "auto", pb: 1 }}>
-        {[...Array(6)].map((_, i) => (
-          <MovieCardSkeleton key={i} />
-        ))}
+        {[...Array(6)].map((_, i) => <MovieCardSkeleton key={i} />)}
       </Box>
     </Paper>
   );
 }
 
-function getPosterUrl(m) {
-  const poster = m.poster_url ?? m.poster ?? "";
-  if (!poster) return "/no-image.jpg";
-  return poster.startsWith("http") ? poster : `https://phimimg.com/${poster}`;
-}
-
+// --- Sections ---
 function BannerSection({ title, link, movies }) {
   return (
     <Paper elevation={2} sx={{ mb: 5, p: 2, borderRadius: 3 }}>
@@ -81,71 +66,36 @@ function BannerSection({ title, link, movies }) {
         <Typography variant="h5" sx={{ fontWeight: "bold", borderBottom: "3px solid #1976d2" }}>
           {title}
         </Typography>
-        <Button component={Link} to={link} variant="outlined" size="small">
-          Xem thêm
-        </Button>
+        <Button component={Link} to={link} variant="outlined" size="small">Xem thêm</Button>
       </Box>
-
       <Swiper
         modules={[Autoplay, Pagination, Navigation, EffectCoverflow]}
         effect="coverflow"
         grabCursor
         centeredSlides
         slidesPerView={3}
-        coverflowEffect={{
-          rotate: 0,
-          stretch: 0,
-          depth: 140,
-          modifier: 1.6,
-          slideShadows: false
-        }}
+        coverflowEffect={{ rotate: 0, stretch: 0, depth: 140, modifier: 1.6, slideShadows: false }}
         autoplay={{ delay: 4000, disableOnInteraction: false }}
         pagination={{ clickable: true }}
         navigation
         loop
-        breakpoints={{
-          0: { slidesPerView: 1 },
-          600: { slidesPerView: 1.2 },
-          900: { slidesPerView: 2.2 },
-          1200: { slidesPerView: 3 }
-        }}
+        breakpoints={{ 0: { slidesPerView: 1 }, 600: { slidesPerView: 1.2 }, 900: { slidesPerView: 2.2 }, 1200: { slidesPerView: 3 } }}
         style={{ width: "100%", height: "70vh" }}
       >
-        {movies.map((m, idx) => (
-          <SwiperSlide key={m._id ?? m.slug ?? idx}>
+        {movies.map((m) => (
+          <SwiperSlide key={m._id}>
             <Link to={`/phim/${m.slug}`} style={{ display: "block", width: "100%", height: "100%" }}>
               <Box sx={{ position: "relative", width: "100%", height: "100%" }}>
                 <Box
                   component="img"
-                  src={getPosterUrl(m)}
+                  src={m.poster_url?.startsWith("http") ? m.poster_url : `https://phimimg.com/${m.poster_url}`}
                   alt={m.name}
-                  loading="lazy"
-                  sx={{
-                    width: "100%",
-                    height: "100%",
-                    objectFit: "cover",
-                    borderRadius: 3,
-                    boxShadow: 6,
-                    transformOrigin: "center center"
-                  }}
+                  sx={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: 3, boxShadow: 6 }}
                   onError={(e) => { e.target.src = "/no-image.jpg"; }}
                 />
-                <Box
-                  sx={{
-                    position: "absolute",
-                    bottom: 0,
-                    left: 0,
-                    right: 0,
-                    p: { xs: 2, md: 4 },
-                    background: "linear-gradient(to top, rgba(0,0,0,0.6), transparent)"
-                  }}
-                >
-                  <Typography variant="h6" color="white" fontWeight="bold" noWrap>
-                    {m.name}
-                  </Typography>
-                  <Typography variant="body2" color="white">
-                    {m.year} • {m.quality}
-                  </Typography>
+                <Box sx={{ position: "absolute", bottom: 0, left: 0, right: 0, p: { xs: 2, md: 4 }, background: "linear-gradient(to top, rgba(0,0,0,0.8), transparent)" }}>
+                  <Typography variant="h6" color="white" fontWeight="bold" noWrap>{m.name}</Typography>
+                  <Typography variant="body2" color="white">{m.year} • {m.quality}</Typography>
                 </Box>
               </Box>
             </Link>
@@ -156,56 +106,34 @@ function BannerSection({ title, link, movies }) {
   );
 }
 
-function HorizontalSection({ title, link, movies }) {
+function HorizontalSection({ title, link, movies, isHistory = false }) {
+  if (movies.length === 0) return null;
   return (
-    <Paper elevation={2} sx={{ mt: 5, p: 2, borderRadius: 3 }}>
+    <Paper elevation={2} sx={{ mt: 5, p: 2, borderRadius: 3, borderLeft: isHistory ? "5px solid #1976d2" : "none" }}>
       <Box sx={{ display: "flex", justifyContent: "space-between", mb: 2, alignItems: "center" }}>
-        <Typography variant="h5" sx={{ fontWeight: "bold", borderBottom: "3px solid #1976d2" }}>
+        <Typography variant="h5" sx={{ fontWeight: "bold", borderBottom: !isHistory ? "3px solid #1976d2" : "none" }}>
           {title}
         </Typography>
         <Button component={Link} to={link} variant="outlined" size="small">
-          Xem thêm
+          {isHistory ? "Quản lý" : "Xem thêm"}
         </Button>
       </Box>
-
-      <Box
-        sx={{
-          display: "flex",
-          overflowX: "auto",
-          gap: 2,
-          scrollBehavior: "smooth",
-          pb: 1,
-          scrollSnapType: "x mandatory",
-          "& > *": { scrollSnapAlign: "start" }
-        }}
-      >
-        {movies.map((m, idx) => (
-          <Card
-            key={m._id ?? `${m.slug}-${m.episode ?? idx}`}
-            sx={{
-              minWidth: 160,
-              transition: "transform 0.28s, box-shadow 0.28s",
-              "&:hover": { transform: "scale(1.05)", boxShadow: 6 },
-              flex: "0 0 auto"
-            }}
-          >
+      <Box sx={{ display: "flex", overflowX: "auto", gap: 2, scrollBehavior: "smooth", pb: 1 }}>
+        {movies.map((m) => (
+          <Card key={m.slug || m._id} sx={{ minWidth: 160, maxWidth: 160, transition: "transform 0.28s", "&:hover": { transform: "scale(1.05)" }, flex: "0 0 auto" }}>
             <Link to={`/phim/${m.slug}`}>
               <CardMedia
                 component="img"
                 height="220"
-                image={getPosterUrl(m)}
-                alt={m.name}
-                loading="lazy"
+                image={m.poster_url?.startsWith("http") ? m.poster_url : (m.poster?.startsWith("http") ? m.poster : `https://phimimg.com/${m.poster_url || m.poster}`)}
                 onError={(e) => { e.target.src = "/no-image.jpg"; }}
                 sx={{ borderRadius: 2 }}
               />
             </Link>
-            <CardContent sx={{ textAlign: "center" }}>
-              <Typography variant="subtitle2" noWrap fontWeight="bold">
-                {m.name}
-              </Typography>
+            <CardContent sx={{ textAlign: "center", p: 1 }}>
+              <Typography variant="subtitle2" noWrap fontWeight="bold">{m.name}</Typography>
               <Typography variant="caption" color="text.secondary">
-                {m.year} {m.episode ? `• Tập ${m.episode}` : `• ${m.quality ?? ""}`}
+                {isHistory ? `Đang xem: ${m.episode}` : `${m.year} • ${m.quality}`}
               </Typography>
             </CardContent>
           </Card>
@@ -224,67 +152,23 @@ function Home() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // load history from localStorage
-    const h = JSON.parse(localStorage.getItem("watchHistory") || "[]");
-    // sort by time desc
-    h.sort((a, b) => (b.time || 0) - (a.time || 0));
-    setHistory(h);
+    // Lấy lịch sử từ localStorage
+    const savedHistory = JSON.parse(localStorage.getItem("watch_history") || "[]");
+    setHistory(savedHistory);
 
-    // listen to storage changes (sync across tabs)
-    const onStorage = (e) => {
-      if (e.key === "watchHistory") {
-        const newH = JSON.parse(e.newValue || "[]");
-        newH.sort((a, b) => (b.time || 0) - (a.time || 0));
-        setHistory(newH);
-      }
-    };
-    window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
-  }, []);
-
-  useEffect(() => {
-    setLoading(true);
-
-    // fetch multiple endpoints but handle each result independently
-    Promise.allSettled([
+    Promise.all([
       axios.get("https://phimapi.com/danh-sach/phim-moi-cap-nhat-v3?page=1"),
       axios.get("https://phimapi.com/v1/api/the-loai/hanh-dong?page=1"),
       axios.get("https://phimapi.com/v1/api/quoc-gia/han-quoc?page=1"),
       axios.get("https://phimapi.com/v1/api/danh-sach/phim-bo?page=1")
     ])
-      .then((results) => {
-        const [latestRes, catRes, countryRes, typeRes] = results;
-
-        if (latestRes.status === "fulfilled") {
-          setLatest(latestRes.value.data.items || []);
-        } else {
-          setLatest([]);
-        }
-
-        if (catRes.status === "fulfilled") {
-          setHanhDong(catRes.value.data.data.items || []);
-        } else {
-          setHanhDong([]);
-        }
-
-        if (countryRes.status === "fulfilled") {
-          setHanQuoc(countryRes.value.data.data.items || []);
-        } else {
-          setHanQuoc([]);
-        }
-
-        if (typeRes.status === "fulfilled") {
-          setPhimBo(typeRes.value.data.data.items || []);
-        } else {
-          setPhimBo([]);
-        }
+      .then(([latestRes, catRes, countryRes, typeRes]) => {
+        setLatest(latestRes.data.items || []);
+        setHanhDong(catRes.data.data.items || []);
+        setHanQuoc(countryRes.data.data.items || []);
+        setPhimBo(typeRes.data.data.items || []);
       })
-      .catch(() => {
-        setLatest([]);
-        setHanhDong([]);
-        setHanQuoc([]);
-        setPhimBo([]);
-      })
+      .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
 
@@ -294,24 +178,19 @@ function Home() {
         <BannerSkeleton />
         <HorizontalSkeleton />
         <HorizontalSkeleton />
-        <HorizontalSkeleton />
       </Container>
     );
   }
 
   return (
     <Container maxWidth="lg" sx={{ mt: 5 }}>
+      {/* Dòng lịch sử xem phim */}
+      <HorizontalSection title="Phim vừa xem" link="/lich-su" movies={history} isHistory={true} />
+
       <BannerSection title="Phim mới cập nhật" link="/phim-moi-cap-nhat" movies={latest} />
-
       <HorizontalSection title="Hành động" link="/the-loai/hanh-dong" movies={hanhDong} />
-
       <HorizontalSection title="Hàn Quốc" link="/quoc-gia/han-quoc" movies={hanQuoc} />
-
       <HorizontalSection title="Phim Bộ" link="/danh-sach/phim-bo" movies={phimBo} />
-
-      {history.length > 0 && (
-        <HorizontalSection title="Lịch sử xem" link="/lich-su" movies={history} />
-      )}
     </Container>
   );
 }
