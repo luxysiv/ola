@@ -1,3 +1,4 @@
+// src/App.js
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { Box } from "@mui/material";
 
@@ -11,11 +12,11 @@ import TypeListPage from "./pages/TypeListPage";
 import Header from "./components/Header";
 import LatestPage from "./pages/LatestPage";
 import Footer from "./components/Footer";
+import HistoryPage from "./pages/HistoryPage"; // thêm import
 
 function App() {
   return (
     <Router>
-      {/* layout full height */}
       <Box
         sx={{
           minHeight: "100vh",
@@ -25,7 +26,6 @@ function App() {
       >
         <Header />
 
-        {/* nội dung */}
         <Box sx={{ flex: 1 }}>
           <Routes>
             <Route path="/" element={<Home />} />
@@ -36,6 +36,7 @@ function App() {
             <Route path="/nam/:year" element={<YearPage />} />
             <Route path="/danh-sach/:type_list" element={<TypeListPage />} />
             <Route path="/phim/:slug" element={<MovieDetail />} />
+            <Route path="/lich-su" element={<HistoryPage />} /> {/* thêm route mới */}
           </Routes>
         </Box>
 
