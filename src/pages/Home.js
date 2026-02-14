@@ -68,6 +68,12 @@ function HorizontalSkeleton() {
   );
 }
 
+function getPosterUrl(m) {
+  const poster = m.poster_url ?? m.poster ?? "";
+  if (!poster) return "/no-image.jpg";
+  return poster.startsWith("http") ? poster : `https://phimimg.com/${poster}`;
+}
+
 function BannerSection({ title, link, movies }) {
   return (
     <Paper elevation={2} sx={{ mb: 5, p: 2, borderRadius: 3 }}>
@@ -105,18 +111,15 @@ function BannerSection({ title, link, movies }) {
         }}
         style={{ width: "100%", height: "70vh" }}
       >
-        {movies.map((m) => (
-          <SwiperSlide key={m._id}>
+        {movies.map((m, idx) => (
+          <SwiperSlide key={m._id ?? m.slug ?? idx}>
             <Link to={`/phim/${m.slug}`} style={{ display: "block", width: "100%", height: "100%" }}>
               <Box sx={{ position: "relative", width: "100%", height: "100%" }}>
                 <Box
                   component="img"
-                  src={
-                    m.poster_url?.startsWith("http")
-                      ? m.poster_url
-                      : `https://phimimg.com/${m.poster_url}`
-                  }
+                  src={getPosterUrl(m)}
                   alt={m.name}
+                  loading="lazy"
                   sx={{
                     width: "100%",
                     height: "100%",
@@ -165,10 +168,20 @@ function HorizontalSection({ title, link, movies }) {
         </Button>
       </Box>
 
-      <Box sx={{ display: "flex", overflowX: "auto", gap: 2, scrollBehavior: "smooth", pb: 1 }}>
-        {movies.map((m) => (
+      <Box
+        sx={{
+          display: "flex",
+          overflowX: "auto",
+          gap: 2,
+          scrollBehavior: "smooth",
+          pb: 1,
+          scrollSnapType: "x mandatory",
+          "& > *": { scrollSnapAlign: "start" }
+        }}
+      >
+        {movies.map((m, idx) => (
           <Card
-            key={m._id}
+            key={m._id ?? `${m.slug}-${m.episode ?? idx}`}
             sx={{
               minWidth: 160,
               transition: "transform 0.28s, box-shadow 0.28s",
@@ -180,11 +193,9 @@ function HorizontalSection({ title, link, movies }) {
               <CardMedia
                 component="img"
                 height="220"
-                image={
-                  m.poster_url?.startsWith("http")
-                    ? m.poster_url
-                    : `https://phimimg.com/${m.poster_url}`
-                }
+                image={getPosterUrl(m)}
+                alt={m.name}
+                loading="lazy"
                 onError={(e) => { e.target.src = "/no-image.jpg"; }}
                 sx={{ borderRadius: 2 }}
               />
@@ -194,7 +205,7 @@ function HorizontalSection({ title, link, movies }) {
                 {m.name}
               </Typography>
               <Typography variant="caption" color="text.secondary">
-                {m.year} • {m.quality}
+                {m.year} {m.episode ? `• Tập ${m.episode}` : `• ${m.quality ?? ""}`}
               </Typography>
             </CardContent>
           </Card>
@@ -209,20 +220,64 @@ function Home() {
   const [hanhDong, setHanhDong] = useState([]);
   const [hanQuoc, setHanQuoc] = useState([]);
   const [phimBo, setPhimBo] = useState([]);
+  const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    Promise.all([
+    // load history from localStorage
+    const h = JSON.parse(localStorage.getItem("watchHistory") || "[]");
+    // sort by time desc
+    h.sort((a, b) => (b.time || 0) - (a.time || 0));
+    setHistory(h);
+
+    // listen to storage changes (sync across tabs)
+    const onStorage = (e) => {
+      if (e.key === "watchHistory") {
+        const newH = JSON.parse(e.newValue || "[]");
+        newH.sort((a, b) => (b.time || 0) - (a.time || 0));
+        setHistory(newH);
+      }
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
+
+  useEffect(() => {
+    setLoading(true);
+
+    // fetch multiple endpoints but handle each result independently
+    Promise.allSettled([
       axios.get("https://phimapi.com/danh-sach/phim-moi-cap-nhat-v3?page=1"),
       axios.get("https://phimapi.com/v1/api/the-loai/hanh-dong?page=1"),
       axios.get("https://phimapi.com/v1/api/quoc-gia/han-quoc?page=1"),
       axios.get("https://phimapi.com/v1/api/danh-sach/phim-bo?page=1")
     ])
-      .then(([latestRes, catRes, countryRes, typeRes]) => {
-        setLatest(latestRes.data.items || []);
-        setHanhDong(catRes.data.data.items || []);
-        setHanQuoc(countryRes.data.data.items || []);
-        setPhimBo(typeRes.data.data.items || []);
+      .then((results) => {
+        const [latestRes, catRes, countryRes, typeRes] = results;
+
+        if (latestRes.status === "fulfilled") {
+          setLatest(latestRes.value.data.items || []);
+        } else {
+          setLatest([]);
+        }
+
+        if (catRes.status === "fulfilled") {
+          setHanhDong(catRes.value.data.data.items || []);
+        } else {
+          setHanhDong([]);
+        }
+
+        if (countryRes.status === "fulfilled") {
+          setHanQuoc(countryRes.value.data.data.items || []);
+        } else {
+          setHanQuoc([]);
+        }
+
+        if (typeRes.status === "fulfilled") {
+          setPhimBo(typeRes.value.data.data.items || []);
+        } else {
+          setPhimBo([]);
+        }
       })
       .catch(() => {
         setLatest([]);
@@ -253,6 +308,10 @@ function Home() {
       <HorizontalSection title="Hàn Quốc" link="/quoc-gia/han-quoc" movies={hanQuoc} />
 
       <HorizontalSection title="Phim Bộ" link="/danh-sach/phim-bo" movies={phimBo} />
+
+      {history.length > 0 && (
+        <HorizontalSection title="Lịch sử xem" link="/lich-su" movies={history} />
+      )}
     </Container>
   );
 }
