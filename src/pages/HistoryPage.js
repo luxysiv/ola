@@ -56,11 +56,7 @@ function HistoryPage() {
                 <CardMedia
                   component="img"
                   height="240"
-                  image={
-                    m.poster_url?.startsWith("http")
-                      ? m.poster_url
-                      : `https://phimimg.com/${m.poster_url}`
-                  }
+                  image={`${m.poster}`}
                 />
               </Link>
 
