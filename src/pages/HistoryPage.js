@@ -1,3 +1,4 @@
+// src/pages/HistoryPage.js
 import React, { useEffect, useState } from "react";
 import {
   Container,
@@ -16,6 +17,14 @@ import {
   clearHistory
 } from "../utils/history";
 
+// chuẩn hóa URL poster
+const getPosterUrl = (url) => {
+  if (!url) return "/no-image.jpg";
+  return url.startsWith("https://")
+    ? url
+    : `https://phimimg.com/${url}`;
+};
+
 function HistoryPage() {
   const [history, setHistory] = useState([]);
 
@@ -23,7 +32,7 @@ function HistoryPage() {
     setHistory(getHistory());
   }, []);
 
-  const handleDelete = slug => {
+  const handleDelete = (slug) => {
     removeHistoryItem(slug);
     setHistory(getHistory());
   };
@@ -40,23 +49,23 @@ function HistoryPage() {
       </Typography>
 
       {history.length > 0 && (
-        <Button
-          color="error"
-          onClick={handleClear}
-        >
+        <Button color="error" onClick={handleClear}>
           Xóa toàn bộ
         </Button>
       )}
 
       <Grid container spacing={2} sx={{ mt: 1 }}>
-        {history.map(m => (
+        {history.map((m) => (
           <Grid item xs={6} sm={4} md={3} key={m.slug}>
             <Card>
               <Link to={`/phim/${m.slug}`}>
                 <CardMedia
                   component="img"
                   height="240"
-                  image={`${m.poster}`}
+                  image={getPosterUrl(m.poster)}
+                  onError={(e) => {
+                    e.target.src = "/no-image.jpg";
+                  }}
                 />
               </Link>
 
@@ -72,9 +81,7 @@ function HistoryPage() {
                 <Button
                   size="small"
                   color="error"
-                  onClick={() =>
-                    handleDelete(m.slug)
-                  }
+                  onClick={() => handleDelete(m.slug)}
                 >
                   Xóa
                 </Button>
