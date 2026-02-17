@@ -68,20 +68,28 @@ function MovieDetail() {
         setMovie(movieData);
         setServers(epData);
 
-        // resume time
+        /* ===== lấy lịch sử ===== */
         const history = getHistory();
         const item = history.find(
           m => m.slug === slug
         );
+
         if (item) {
-          setResumeTime(
-            item.currentTime || 0
-          );
+          setResumeTime(item.currentTime || 0);
         }
 
         const parts = getQueryParts();
-        const serverSlug = parts[0];
-        const epSlug = parts[1];
+        let serverSlug = parts[0];
+        let epSlug = parts[1];
+
+        /* ===== fallback từ history ===== */
+        if (!serverSlug && item?.server) {
+          serverSlug = normalize(item.server);
+        }
+
+        if (!epSlug && item?.episode) {
+          epSlug = normalize(item.episode);
+        }
 
         if (!serverSlug) return;
 
