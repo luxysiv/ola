@@ -13,10 +13,12 @@ const VideoPlayer = ({ src, title, movieInfo }) => {
   useEffect(() => {
     if (!videoRef.current || !src) return;
 
+    const video = videoRef.current;
+
     const proxiedUrl =
       `/proxy-stream?url=${encodeURIComponent(src)}`;
 
-    // destroy HLS cũ nếu có
+    // destroy HLS cũ
     if (hlsRef.current) {
       hlsRef.current.destroy();
       hlsRef.current = null;
@@ -24,15 +26,26 @@ const VideoPlayer = ({ src, title, movieInfo }) => {
 
     if (Hls.isSupported()) {
       const hls = new Hls();
+
       hls.loadSource(proxiedUrl);
-      hls.attachMedia(videoRef.current);
+      hls.attachMedia(video);
+
+      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        video.play().catch(() => {});
+      });
+
       hlsRef.current = hls;
     } else if (
-      videoRef.current.canPlayType(
+      video.canPlayType(
         "application/vnd.apple.mpegurl"
       )
     ) {
-      videoRef.current.src = proxiedUrl;
+      video.src = proxiedUrl;
+      video.addEventListener(
+        "loadedmetadata",
+        () => video.play().catch(() => {}),
+        { once: true }
+      );
     }
 
     return () => {
@@ -44,7 +57,7 @@ const VideoPlayer = ({ src, title, movieInfo }) => {
   }, [src]);
 
   /* =========================
-     Khôi phục thời gian xem
+     Resume thời gian xem
   ========================= */
   useEffect(() => {
     if (!videoRef.current || !movieInfo) return;
@@ -52,13 +65,13 @@ const VideoPlayer = ({ src, title, movieInfo }) => {
     const timer = setTimeout(() => {
       videoRef.current.currentTime =
         movieInfo.currentTime || 0;
-    }, 800);
+    }, 700);
 
     return () => clearTimeout(timer);
   }, [src, movieInfo]);
 
   /* =========================
-     Tự động lưu lịch sử xem
+     Lưu lịch sử xem
   ========================= */
   useEffect(() => {
     if (!movieInfo) return;
@@ -102,6 +115,7 @@ const VideoPlayer = ({ src, title, movieInfo }) => {
         <video
           ref={videoRef}
           controls
+          autoPlay
           style={{
             width: "100%",
             height: "100%",
