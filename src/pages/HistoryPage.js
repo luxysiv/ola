@@ -58,7 +58,7 @@ function HistoryPage() {
         {history.map((m) => (
           <Grid item xs={6} sm={4} md={3} key={m.slug}>
             <Card>
-              <Link to={`/phim/${m.slug}`}>
+              <Link to={`/phim/${m.slug}?tap=${m.episode}`}>
                 <CardMedia
                   component="img"
                   height="240"
