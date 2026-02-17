@@ -184,7 +184,7 @@ function HorizontalSection({ title, link, movies }) {
       <Box sx={{ display: "flex", overflowX: "auto", gap: 2, pb: 1 }}>
         {movies.map((m, i) => (
           <Card key={m._id || i} sx={{ minWidth: 160, flex: "0 0 auto", "&:hover": { transform: "scale(1.05)", boxShadow: 6 } }}>
-            <Link to={`/phim/${m.slug}`}>
+            <Link to={`/phim/${m.slug}?tap=${m.episode}`}>
               <CardMedia
                 component="img"
                 height="220"
