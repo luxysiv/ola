@@ -1,3 +1,4 @@
+//src/utils/history.js
 const KEY = "movie_history";
 
 export const getHistory = () => {
