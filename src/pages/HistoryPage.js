@@ -17,17 +17,6 @@ import {
   clearHistory
 } from "../utils/history";
 
-const normalize = (str = "") =>
-  str
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/đ/g, "d")
-    .replace(/[()#]/g, "")
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-")
-    .trim();
-
 // chuẩn hóa URL poster
 const getPosterUrl = (url) => {
   if (!url) return "/no-image.jpg";
@@ -69,7 +58,7 @@ function HistoryPage() {
         {history.map((m) => (
           <Grid item xs={6} sm={4} md={3} key={m.slug}>
             <Card>
-              <Link to={`/phim/${m.slug}?${normalize(m.server)}&${normalize(m.episode)}`}>
+              <Link to={`/phim/${m.slug}?tap=${m.episode}`}>
                 <CardMedia
                   component="img"
                   height="240"
