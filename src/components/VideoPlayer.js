@@ -1,4 +1,3 @@
-//src/components/VideoPlayer.js
 import React, { useRef, useEffect } from "react";
 import Hls from "hls.js";
 import { Card, Box, Typography } from "@mui/material";
@@ -15,11 +14,9 @@ const VideoPlayer = ({ src, title, movieInfo }) => {
     if (!videoRef.current || !src) return;
 
     const video = videoRef.current;
+    const proxiedUrl = `/proxy-stream?url=${encodeURIComponent(src)}`;
 
-    const proxiedUrl =
-      `/proxy-stream?url=${encodeURIComponent(src)}`;
-
-    // destroy HLS cũ
+    // Destroy HLS cũ
     if (hlsRef.current) {
       hlsRef.current.destroy();
       hlsRef.current = null;
@@ -27,26 +24,21 @@ const VideoPlayer = ({ src, title, movieInfo }) => {
 
     if (Hls.isSupported()) {
       const hls = new Hls();
-
+      
       hls.loadSource(proxiedUrl);
       hls.attachMedia(video);
-
+      
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        // Tự động play khi manifest đã parse
         video.play().catch(() => {});
       });
-
+      
       hlsRef.current = hls;
-    } else if (
-      video.canPlayType(
-        "application/vnd.apple.mpegurl"
-      )
-    ) {
+    } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
       video.src = proxiedUrl;
-      video.addEventListener(
-        "loadedmetadata",
-        () => video.play().catch(() => {}),
-        { once: true }
-      );
+      video.addEventListener("loadedmetadata", () => {
+        video.play().catch(() => {});
+      }, { once: true });
     }
 
     return () => {
@@ -58,18 +50,48 @@ const VideoPlayer = ({ src, title, movieInfo }) => {
   }, [src]);
 
   /* =========================
-     Resume thời gian xem
+     Resume thời gian xem - ĐÃ SỬA
   ========================= */
   useEffect(() => {
     if (!videoRef.current || !movieInfo) return;
 
-    const timer = setTimeout(() => {
-      videoRef.current.currentTime =
-        movieInfo.currentTime || 0;
-    }, 700);
+    // Chỉ resume nếu có thời gian > 0 và src đã load
+    if (movieInfo.currentTime > 0) {
+      const timer = setTimeout(() => {
+        const video = videoRef.current;
+        if (video && video.readyState >= 1) {
+          video.currentTime = movieInfo.currentTime;
+        }
+      }, 1000);
 
-    return () => clearTimeout(timer);
+      return () => clearTimeout(timer);
+    }
   }, [src, movieInfo]);
+
+  /* =========================
+     Tự động play khi đổi src - THÊM MỚI
+  ========================= */
+  useEffect(() => {
+    if (!videoRef.current || !src) return;
+
+    const video = videoRef.current;
+    
+    const attemptPlay = () => {
+      video.play().catch(error => {
+        console.log("Auto-play failed:", error);
+      });
+    };
+
+    // Thử play ngay lập tức
+    attemptPlay();
+
+    // Và thử lại khi video ready
+    video.addEventListener('canplay', attemptPlay, { once: true });
+
+    return () => {
+      video.removeEventListener('canplay', attemptPlay);
+    };
+  }, [src]);
 
   /* =========================
      Lưu lịch sử xem
@@ -79,11 +101,11 @@ const VideoPlayer = ({ src, title, movieInfo }) => {
 
     const interval = setInterval(() => {
       const video = videoRef.current;
-      if (!video) return;
+      if (!video || !movieInfo.slug) return;
 
       saveHistoryItem({
         ...movieInfo,
-        currentTime: video.currentTime,
+        currentTime: video.currentTime || 0,
         updatedAt: Date.now()
       });
     }, 5000);
