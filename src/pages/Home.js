@@ -28,6 +28,12 @@ import "swiper/css/effect-coverflow";
 
 import { getHistory } from "../utils/history";
 
+const normalize = (str = "") =>
+  str.toString().toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d").replace(/[()#]/g, "")
+    .replace(/\s+/g, "-").replace(/-+/g, "-").trim();
+
 /* ================= Poster helper ================= */
 
 const getPosterUrl = (url) => {
@@ -184,7 +190,7 @@ function HorizontalSection({ title, link, movies }) {
       <Box sx={{ display: "flex", overflowX: "auto", gap: 2, pb: 1 }}>
         {movies.map((m, i) => (
           <Card key={m._id || i} sx={{ minWidth: 160, flex: "0 0 auto", "&:hover": { transform: "scale(1.05)", boxShadow: 6 } }}>
-            <Link to={`/phim/${m.slug}?tap=${m.episode}`}>
+            <Link to={`/phim/${m.slug}?${normalize(m.server)}&${normalize(m.episode)}`}>
               <CardMedia
                 component="img"
                 height="220"
