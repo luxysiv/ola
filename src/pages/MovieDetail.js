@@ -31,42 +31,36 @@ function MovieDetail() {
         setMovie(movieData);
         setServers(epData);
 
-        // 1. Lấy lịch sử xem
+        // 1. Lấy lịch sử (chỉ lấy time để sẵn đó, chưa play)
         const history = getHistory();
         const historyItem = history.find(m => m.slug === slug);
         if (historyItem) setResumeTime(historyItem.currentTime || 0);
 
-        // 2. Phân tích URL theo dạng ?server&tap
-        // location.search ví dụ: "?ha-noi-vietsub&tap-01"
-        const searchPath = location.search.substring(1); // bỏ dấu "?"
+        // 2. Phân tích URL
+        const searchPath = location.search.substring(1); 
         const parts = searchPath.split("&").filter(Boolean);
-        
-        let serverSlug = parts[0] || (historyItem?.server ? normalize(historyItem.server) : null);
-        let epSlug = parts[1] || (historyItem?.episode ? normalize(historyItem.episode) : null);
 
-        // 3. Tìm Server Index
-        let svIdx = epData.findIndex(s => normalize(s.server_name) === serverSlug);
-        if (svIdx === -1) svIdx = 0;
-        setCurrentServer(svIdx);
+        // NẾU URL CÓ QUERY (Dạng ?server&tap) -> MỚI LOAD PLAYER
+        if (parts.length > 0) {
+          let serverSlug = parts[0];
+          let epSlug = parts[1];
 
-        // 4. Tìm Tập phim
-        const listEp = epData[svIdx]?.server_data || [];
-        let epIdx = listEp.findIndex(e => normalize(e.name) === epSlug);
-        
-        // Nếu không có epSlug (vào phim lần đầu) hoặc không tìm thấy tập, lấy tập 1
-        if (epIdx === -1) epIdx = 0;
+          let svIdx = epData.findIndex(s => normalize(s.server_name) === serverSlug);
+          if (svIdx === -1) svIdx = 0;
+          setCurrentServer(svIdx);
 
-        if (listEp[epIdx]) {
-          const targetEp = listEp[epIdx];
-          setSrc(targetEp.link_m3u8);
-          setCurrentEp(targetEp.name);
-          
-          // Cập nhật lại URL cho đẹp nếu URL đang trống (phòng trường hợp vào link gốc không có ?...)
-          if (!searchPath && listEp[epIdx]) {
-             const newSvSlug = normalize(epData[svIdx].server_name);
-             const newEpSlug = normalize(targetEp.name);
-             navigate(`/phim/${slug}?${newSvSlug}&${newEpSlug}`, { replace: true });
+          const listEp = epData[svIdx]?.server_data || [];
+          let epIdx = listEp.findIndex(e => normalize(e.name) === epSlug);
+          if (epIdx === -1) epIdx = 0;
+
+          if (listEp[epIdx]) {
+            setSrc(listEp[epIdx].link_m3u8);
+            setCurrentEp(listEp[epIdx].name);
           }
+        } else {
+          // NẾU URL TRỐNG (Chỉ có /phim/slug) -> RESET PLAYER VỀ NULL ĐỂ HIỆN BANNER
+          setSrc(null);
+          setCurrentEp(null);
         }
       })
       .catch(console.error);
@@ -75,23 +69,27 @@ function MovieDetail() {
   const handleSelectEpisode = ep => {
     const svSlug = normalize(servers[currentServer]?.server_name);
     const epSlug = normalize(ep.name);
-    // Điều hướng theo định dạng bạn muốn: /slug?server&tap
+    // Khi chọn tập, URL sẽ thay đổi -> useEffect trên sẽ chạy và thay Banner bằng Player
     navigate(`/phim/${slug}?${svSlug}&${epSlug}`);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const handleChangeServer = index => {
+    setCurrentServer(index);
+    // Khi đổi server, chúng ta chưa play tập nào nên có thể giữ nguyên hoặc nhảy vào tập 1 của server đó
     const svSlug = normalize(servers[index]?.server_name);
-    navigate(`/phim/${slug}?${svSlug}`);
+    navigate(`/phim/${slug}?${svSlug}`); 
   };
 
   const episodeList = servers[currentServer]?.server_data || [];
+  const banner = movie?.thumb_url || movie?.poster_url;
 
   return (
     <Container sx={{ mt: 2, mb: 5 }}>
+      {/* ĐIỀU KIỆN HIỂN THỊ: CÓ SRC THÌ HIỆN PLAYER, KHÔNG THÌ HIỆN BANNER */}
       {src ? (
         <VideoPlayer
-          key={src} // Quan trọng để reset trình phát khi đổi tập
+          key={src} 
           src={src}
           title={`${movie?.name} - ${currentEp}`}
           movieInfo={{
@@ -104,35 +102,80 @@ function MovieDetail() {
           resumeTime={resumeTime}
         />
       ) : (
-        movie?.poster_url && <Box sx={{ width: "100%", height: 450, backgroundImage: `url(${movie.poster_url})`, backgroundSize: "cover", backgroundPosition: "center", borderRadius: 2, mb: 2 }} />
+        banner && (
+          <Box
+            sx={{
+              width: "100%",
+              height: { xs: 250, md: 450 },
+              backgroundImage: `url(${banner})`,
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+              borderRadius: 2,
+              mb: 2,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              position: "relative",
+              "&::after": {
+                content: '""',
+                position: "absolute",
+                top: 0, left: 0, right: 0, bottom: 0,
+                backgroundColor: "rgba(0,0,0,0.4)",
+                borderRadius: 2
+              }
+            }}
+          >
+            <Button 
+              variant="contained" 
+              size="large" 
+              color="error"
+              sx={{ zIndex: 1, fontWeight: "bold", px: 4 }}
+              onClick={() => handleSelectEpisode(episodeList[0])}
+            >
+              XEM PHIM NGAY
+            </Button>
+          </Box>
+        )
       )}
 
-      {/* ... Phần hiển thị thông tin phim giữ nguyên như code trước ... */}
       {movie && (
-        <Box sx={{ mt: 2 }}>
+        <Box sx={{ mt: 3 }}>
           <Typography variant="h4" fontWeight="bold">{movie.name}</Typography>
-          <Typography color="gray" gutterBottom>{movie.origin_name}</Typography>
-          <Stack direction="row" spacing={1} mb={2}>
-            <Chip label={movie.year} size="small" />
-            <Chip label={movie.quality} color="primary" size="small" />
+          <Typography color="text.secondary" variant="h6">{movie.origin_name} ({movie.year})</Typography>
+          
+          <Stack direction="row" spacing={1} mt={1} mb={2}>
+            <Chip label={movie.quality} color="primary" />
+            <Chip label={movie.lang} />
+            <Chip label={movie.time} />
           </Stack>
-          <Typography variant="body1">{movie.content}</Typography>
+
+          <Typography variant="body1" sx={{ lineHeight: 1.7 }}>
+            {movie.content?.replace(/<[^>]*>/g, "")}
+          </Typography>
         </Box>
       )}
 
-      <Typography sx={{ mt: 3 }} variant="h6">Server</Typography>
-      <Box sx={{ display: "flex", gap: 1, mt: 1 }}>
+      <Typography sx={{ mt: 4 }} variant="h6" fontWeight="bold">Chọn Server</Typography>
+      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mt: 1 }}>
         {servers.map((sv, i) => (
-          <Button key={i} variant={i === currentServer ? "contained" : "outlined"} onClick={() => handleChangeServer(i)}>
+          <Button 
+            key={i} 
+            variant={i === currentServer ? "contained" : "outlined"} 
+            onClick={() => handleChangeServer(i)}
+          >
             {sv.server_name}
           </Button>
         ))}
       </Box>
 
-      <Typography sx={{ mt: 3 }} variant="h6">Danh sách tập</Typography>
-      <Box sx={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(80px, 1fr))", gap: 1, mt: 1 }}>
+      <Typography sx={{ mt: 3 }} variant="h6" fontWeight="bold">Danh sách tập</Typography>
+      <Box sx={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(90px, 1fr))", gap: 1, mt: 1 }}>
         {episodeList.map((ep, i) => (
-          <Button key={i} variant={currentEp === ep.name ? "contained" : "outlined"} onClick={() => handleSelectEpisode(ep)}>
+          <Button 
+            key={i} 
+            variant={currentEp === ep.name ? "contained" : "outlined"} 
+            onClick={() => handleSelectEpisode(ep)}
+          >
             {ep.name}
           </Button>
         ))}
