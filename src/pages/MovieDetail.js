@@ -1,36 +1,15 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import {
-  useParams,
-  useNavigate,
-  useLocation
-} from "react-router-dom";
-
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import VideoPlayer from "../components/VideoPlayer";
 import { getHistory } from "../utils/history";
+import { Container, Typography, Button, Box, Chip, Stack } from "@mui/material";
 
-import {
-  Container,
-  Typography,
-  Button,
-  Box,
-  Chip,
-  Stack
-} from "@mui/material";
-
-/* =========================
-   Chuẩn hóa URL
-========================= */
 const normalize = (str = "") =>
-  str
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/đ/g, "d")
-    .replace(/[()#]/g, "")
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-")
-    .trim();
+  str.toString().toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d").replace(/[()#]/g, "")
+    .replace(/\s+/g, "-").replace(/-+/g, "-").trim();
 
 function MovieDetail() {
   const { slug } = useParams();
@@ -39,262 +18,121 @@ function MovieDetail() {
 
   const [movie, setMovie] = useState(null);
   const [servers, setServers] = useState([]);
-  const [currentServer, setCurrentServer] =
-    useState(0);
+  const [currentServer, setCurrentServer] = useState(0);
   const [src, setSrc] = useState(null);
-  const [currentEp, setCurrentEp] =
-    useState(null);
-  const [resumeTime, setResumeTime] =
-    useState(0);
+  const [currentEp, setCurrentEp] = useState(null);
+  const [resumeTime, setResumeTime] = useState(0);
 
-  const getQueryParts = () => {
-    if (!location.search) return [];
-    return location.search
-      .substring(1)
-      .split("&")
-      .filter(Boolean);
-  };
-
-  /* =========================
-     Load phim
-  ========================= */
   useEffect(() => {
-    axios
-      .get(`https://phimapi.com/phim/${slug}`)
+    axios.get(`https://phimapi.com/phim/${slug}`)
       .then(res => {
         const movieData = res.data.movie;
         const epData = res.data.episodes || [];
-
         setMovie(movieData);
         setServers(epData);
 
-        /* ===== lấy lịch sử ===== */
+        // 1. Lấy lịch sử xem
         const history = getHistory();
-        const item = history.find(
-          m => m.slug === slug
-        );
+        const historyItem = history.find(m => m.slug === slug);
+        if (historyItem) setResumeTime(historyItem.currentTime || 0);
 
-        if (item) {
-          setResumeTime(item.currentTime || 0);
+        // 2. Phân tích URL theo dạng ?server&tap
+        // location.search ví dụ: "?ha-noi-vietsub&tap-01"
+        const searchPath = location.search.substring(1); // bỏ dấu "?"
+        const parts = searchPath.split("&").filter(Boolean);
+        
+        let serverSlug = parts[0] || (historyItem?.server ? normalize(historyItem.server) : null);
+        let epSlug = parts[1] || (historyItem?.episode ? normalize(historyItem.episode) : null);
+
+        // 3. Tìm Server Index
+        let svIdx = epData.findIndex(s => normalize(s.server_name) === serverSlug);
+        if (svIdx === -1) svIdx = 0;
+        setCurrentServer(svIdx);
+
+        // 4. Tìm Tập phim
+        const listEp = epData[svIdx]?.server_data || [];
+        let epIdx = listEp.findIndex(e => normalize(e.name) === epSlug);
+        
+        // Nếu không có epSlug (vào phim lần đầu) hoặc không tìm thấy tập, lấy tập 1
+        if (epIdx === -1) epIdx = 0;
+
+        if (listEp[epIdx]) {
+          const targetEp = listEp[epIdx];
+          setSrc(targetEp.link_m3u8);
+          setCurrentEp(targetEp.name);
+          
+          // Cập nhật lại URL cho đẹp nếu URL đang trống (phòng trường hợp vào link gốc không có ?...)
+          if (!searchPath && listEp[epIdx]) {
+             const newSvSlug = normalize(epData[svIdx].server_name);
+             const newEpSlug = normalize(targetEp.name);
+             navigate(`/phim/${slug}?${newSvSlug}&${newEpSlug}`, { replace: true });
+          }
         }
-
-        const parts = getQueryParts();
-        let serverSlug = parts[0];
-        let epSlug = parts[1];
-
-        /* ===== fallback từ history ===== */
-        if (!serverSlug && item?.server) {
-          serverSlug = normalize(item.server);
-        }
-
-        if (!epSlug && item?.episode) {
-          epSlug = normalize(item.episode);
-        }
-
-        if (!serverSlug) return;
-
-        const svIndex = epData.findIndex(
-          s =>
-            normalize(s.server_name) ===
-            serverSlug
-        );
-
-        if (svIndex === -1) return;
-
-        setCurrentServer(svIndex);
-
-        if (!epSlug) return;
-
-        const epIndex =
-          epData[
-            svIndex
-          ].server_data.findIndex(
-            e =>
-              normalize(e.name) ===
-              epSlug
-          );
-
-        if (epIndex === -1) return;
-
-        const ep =
-          epData[svIndex]
-            .server_data[epIndex];
-
-        setCurrentEp(ep.name);
-        setSrc(ep.link_m3u8);
       })
       .catch(console.error);
   }, [slug, location.search]);
 
-  const episodeList =
-    servers[currentServer]
-      ?.server_data || [];
-
-  const banner =
-    movie?.thumb_url ||
-    movie?.poster_url;
-
-  /* =========================
-     Chọn tập
-  ========================= */
   const handleSelectEpisode = ep => {
-    setSrc(ep.link_m3u8);
-    setCurrentEp(ep.name);
-
-    const svSlug = normalize(
-      servers[currentServer]
-        .server_name
-    );
+    const svSlug = normalize(servers[currentServer]?.server_name);
     const epSlug = normalize(ep.name);
-
-    navigate(
-      `/phim/${slug}?${svSlug}&${epSlug}`
-    );
-
-    window.scrollTo({
-      top: 0,
-      behavior: "smooth"
-    });
+    // Điều hướng theo định dạng bạn muốn: /slug?server&tap
+    navigate(`/phim/${slug}?${svSlug}&${epSlug}`);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  /* =========================
-     Đổi server
-  ========================= */
   const handleChangeServer = index => {
-    setCurrentServer(index);
-    setSrc(null);
-    setCurrentEp(null);
-
-    const svSlug = normalize(
-      servers[index].server_name
-    );
-
-    navigate(
-      `/phim/${slug}?${svSlug}`
-    );
+    const svSlug = normalize(servers[index]?.server_name);
+    navigate(`/phim/${slug}?${svSlug}`);
   };
+
+  const episodeList = servers[currentServer]?.server_data || [];
 
   return (
     <Container sx={{ mt: 2, mb: 5 }}>
       {src ? (
         <VideoPlayer
+          key={src} // Quan trọng để reset trình phát khi đổi tập
           src={src}
-          title={movie?.name}
+          title={`${movie?.name} - ${currentEp}`}
           movieInfo={{
             slug,
             name: movie?.name,
-            poster:
-              movie?.poster_url,
+            poster: movie?.poster_url,
             episode: currentEp,
-            server:
-              servers[currentServer]
-                ?.server_name,
-            currentTime:
-              resumeTime
+            server: servers[currentServer]?.server_name
           }}
+          resumeTime={resumeTime}
         />
       ) : (
-        banner && (
-          <Box
-            sx={{
-              width: "100%",
-              height: 450,
-              backgroundImage: `url(${banner})`,
-              backgroundSize: "cover",
-              backgroundPosition:
-                "center",
-              borderRadius: 2,
-              mb: 2
-            }}
-          />
-        )
+        movie?.poster_url && <Box sx={{ width: "100%", height: 450, backgroundImage: `url(${movie.poster_url})`, backgroundSize: "cover", backgroundPosition: "center", borderRadius: 2, mb: 2 }} />
       )}
 
+      {/* ... Phần hiển thị thông tin phim giữ nguyên như code trước ... */}
       {movie && (
-        <>
-          <Typography
-            variant="h4"
-            fontWeight="bold"
-          >
-            {movie.name}
-          </Typography>
-
-          <Typography color="gray">
-            {movie.origin_name}
-          </Typography>
-
-          <Stack
-            direction="row"
-            spacing={1}
-            mt={1}
-            flexWrap="wrap"
-          >
-            <Chip label={movie.year} />
-            <Chip label={movie.quality} />
-            <Chip label={movie.lang} />
-            <Chip label={movie.time} />
+        <Box sx={{ mt: 2 }}>
+          <Typography variant="h4" fontWeight="bold">{movie.name}</Typography>
+          <Typography color="gray" gutterBottom>{movie.origin_name}</Typography>
+          <Stack direction="row" spacing={1} mb={2}>
+            <Chip label={movie.year} size="small" />
+            <Chip label={movie.quality} color="primary" size="small" />
           </Stack>
-
-          <Typography sx={{ mt: 2 }}>
-            {movie.content}
-          </Typography>
-        </>
+          <Typography variant="body1">{movie.content}</Typography>
+        </Box>
       )}
 
-      <Typography sx={{ mt: 3 }} variant="h6">
-        Server
-      </Typography>
-
-      <Box
-        sx={{
-          display: "flex",
-          flexWrap: "wrap",
-          gap: 1,
-          mt: 1
-        }}
-      >
+      <Typography sx={{ mt: 3 }} variant="h6">Server</Typography>
+      <Box sx={{ display: "flex", gap: 1, mt: 1 }}>
         {servers.map((sv, i) => (
-          <Button
-            key={i}
-            variant={
-              i === currentServer
-                ? "contained"
-                : "outlined"
-            }
-            onClick={() =>
-              handleChangeServer(i)
-            }
-          >
+          <Button key={i} variant={i === currentServer ? "contained" : "outlined"} onClick={() => handleChangeServer(i)}>
             {sv.server_name}
           </Button>
         ))}
       </Box>
 
-      <Typography sx={{ mt: 3 }} variant="h6">
-        Danh sách tập
-      </Typography>
-
-      <Box
-        sx={{
-          display: "grid",
-          gridTemplateColumns:
-            "repeat(auto-fill, minmax(90px, 1fr))",
-          gap: 1,
-          mt: 1
-        }}
-      >
+      <Typography sx={{ mt: 3 }} variant="h6">Danh sách tập</Typography>
+      <Box sx={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(80px, 1fr))", gap: 1, mt: 1 }}>
         {episodeList.map((ep, i) => (
-          <Button
-            key={i}
-            variant={
-              currentEp === ep.name
-                ? "contained"
-                : "outlined"
-            }
-            onClick={() =>
-              handleSelectEpisode(ep)
-            }
-          >
+          <Button key={i} variant={currentEp === ep.name ? "contained" : "outlined"} onClick={() => handleSelectEpisode(ep)}>
             {ep.name}
           </Button>
         ))}
