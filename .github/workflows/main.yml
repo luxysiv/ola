@@ -1,0 +1,31 @@
+name: Build React App
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Clean install dependencies
+        run: |
+          rm -rf node_modules
+          npm install
+
+      - name: Build React app
+        run: CI=false npm run build   # ⚡ fix: bỏ qua eslint warning khi build
+
+      - name: Upload build as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: react-build
+          path: build
