@@ -22,17 +22,18 @@ function CategoryPage() {
 
   const [movies, setMovies] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   
+  // Lấy số trang hiện tại từ URL, mặc định là 1
+  const currentPage = parseInt(searchParams.get("trang") || "1", 10);
+
   const [seoData, setSeoData] = useState({
     titleHead: "",
     descriptionHead: "",
     titlePage: ""
   });
 
-  // Dùng useCallback để tránh lỗi lặp vô tận và làm sạch dependencies cho ESLint
-  const handleFetch = useCallback(async (pageNum = 1) => {
+  const handleFetch = useCallback(async (pageNum) => {
     if (!category) return;
     setLoading(true);
 
@@ -45,7 +46,6 @@ function CategoryPage() {
 
       setMovies(responseData.items || []);
       setTotalPages(responseData.params?.pagination?.totalPages || 1);
-      setPage(pageNum);
       
       setSeoData({
         titleHead: responseData.seoOnPage?.titleHead || "",
@@ -61,12 +61,13 @@ function CategoryPage() {
     }
   }, [category]);
 
+  // Theo dõi sự thay đổi của category hoặc số trang trên URL
   useEffect(() => {
-    const pg = parseInt(searchParams.get("trang") || "1", 10);
-    handleFetch(pg);
-  }, [searchParams, handleFetch]);
+    handleFetch(currentPage);
+  }, [currentPage, handleFetch]);
 
   const handlePageChange = (event, value) => {
+    // Đẩy số trang lên URL
     navigate(`/the-loai/${category}?trang=${value}`);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -74,14 +75,13 @@ function CategoryPage() {
   return (
     <Container sx={{ mt: 3, mb: 5 }}>
       <Helmet>
-        <title>{`${seoData.titleHead} ${page > 1 ? `- Trang ${page}` : ""}`}</title>
+        {/* Tiêu đề sẽ hiển thị: "Phim Hành Động | Trang 2 | KKPhim" */}
+        <title>{`${seoData.titlePage || 'Thể loại'} - Trang ${currentPage} | KKPhim`}</title>
         <meta name="description" content={seoData.descriptionHead} />
       </Helmet>
 
-      {/* Đã xóa phần Breadcrumbs ở đây */}
-
       <Typography variant="h5" gutterBottom sx={{ fontWeight: "bold", mb: 3 }}>
-        Thể loại: {seoData.titlePage}
+        Thể loại: {seoData.titlePage} (Trang {currentPage})
       </Typography>
 
       {loading ? (
@@ -142,10 +142,12 @@ function CategoryPage() {
             <Box display="flex" justifyContent="center" mt={5}>
               <Pagination
                 count={totalPages}
-                page={page}
+                page={currentPage} // Đồng bộ số trang với URL
                 onChange={handlePageChange}
                 color="primary"
                 size="large"
+                showFirstButton
+                showLastButton
               />
             </Box>
           )}
