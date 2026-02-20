@@ -36,7 +36,6 @@ function CategoryPage() {
   useEffect(() => {
     const pg = parseInt(searchParams.get("trang") || "1", 10);
     handleFetch(pg);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [category, searchParams]);
 
   const handleFetch = async (pageNum = 1) => {
