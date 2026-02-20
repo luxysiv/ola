@@ -1,6 +1,6 @@
-// src/App.js
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { Box } from "@mui/material";
+import { HelmetProvider } from "react-helmet-async"; // Thêm dòng này
 
 import Home from "./pages/Home";
 import Search from "./pages/Search";
@@ -12,37 +12,39 @@ import TypeListPage from "./pages/TypeListPage";
 import Header from "./components/Header";
 import LatestPage from "./pages/LatestPage";
 import Footer from "./components/Footer";
-import HistoryPage from "./pages/HistoryPage"; // thêm import
+import HistoryPage from "./pages/HistoryPage";
 
 function App() {
   return (
-    <Router>
-      <Box
-        sx={{
-          minHeight: "100vh",
-          display: "flex",
-          flexDirection: "column"
-        }}
-      >
-        <Header />
+    <HelmetProvider> {/* Bọc Provider ở đây */}
+      <Router>
+        <Box
+          sx={{
+            minHeight: "100vh",
+            display: "flex",
+            flexDirection: "column"
+          }}
+        >
+          <Header />
 
-        <Box sx={{ flex: 1 }}>
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/phim-moi-cap-nhat" element={<LatestPage />} />
-            <Route path="/tim-kiem" element={<Search />} />
-            <Route path="/the-loai/:category" element={<CategoryPage />} />
-            <Route path="/quoc-gia/:country" element={<CountryPage />} />
-            <Route path="/nam/:year" element={<YearPage />} />
-            <Route path="/danh-sach/:type_list" element={<TypeListPage />} />
-            <Route path="/phim/:slug" element={<MovieDetail />} />
-            <Route path="/lich-su" element={<HistoryPage />} /> {/* thêm route mới */}
-          </Routes>
+          <Box sx={{ flex: 1 }}>
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/phim-moi-cap-nhat" element={<LatestPage />} />
+              <Route path="/tim-kiem" element={<Search />} />
+              <Route path="/the-loai/:category" element={<CategoryPage />} />
+              <Route path="/quoc-gia/:country" element={<CountryPage />} />
+              <Route path="/nam/:year" element={<YearPage />} />
+              <Route path="/danh-sach/:type_list" element={<TypeListPage />} />
+              <Route path="/phim/:slug" element={<MovieDetail />} />
+              <Route path="/lich-su" element={<HistoryPage />} />
+            </Routes>
+          </Box>
+
+          <Footer />
         </Box>
-
-        <Footer />
-      </Box>
-    </Router>
+      </Router>
+    </HelmetProvider>
   );
 }
 
