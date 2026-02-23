@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
+import { Helmet } from "react-helmet-async"; // Đã thêm Helmet
 import VideoPlayer from "../components/VideoPlayer";
 import { getHistory } from "../utils/history";
 import { Container, Typography, Button, Box, Chip, Stack } from "@mui/material";
@@ -36,29 +37,35 @@ function MovieDetail() {
         const historyItem = history.find(m => m.slug === slug);
         if (historyItem) setResumeTime(historyItem.currentTime || 0);
 
-        // 2. Phân tích URL
-        const searchPath = location.search.substring(1); 
+        // 2. Phân tích URL (Dạng ?server-slug&episode-slug)
+        const searchPath = decodeURIComponent(location.search.substring(1)); 
         const parts = searchPath.split("&").filter(Boolean);
 
-        // NẾU URL CÓ QUERY (Dạng ?server&tap) -> MỚI LOAD PLAYER
         if (parts.length > 0) {
           let serverSlug = parts[0];
           let epSlug = parts[1];
 
+          // Tìm index của server
           let svIdx = epData.findIndex(s => normalize(s.server_name) === serverSlug);
           if (svIdx === -1) svIdx = 0;
           setCurrentServer(svIdx);
 
           const listEp = epData[svIdx]?.server_data || [];
-          let epIdx = listEp.findIndex(e => normalize(e.name) === epSlug);
-          if (epIdx === -1) epIdx = 0;
+          
+          // Nếu có epSlug (phần thứ 2 của query) thì load player
+          if (epSlug) {
+            let epIdx = listEp.findIndex(e => normalize(e.name) === epSlug);
+            if (epIdx === -1) epIdx = 0;
 
-          if (listEp[epIdx]) {
-            setSrc(listEp[epIdx].link_m3u8);
-            setCurrentEp(listEp[epIdx].name);
+            if (listEp[epIdx]) {
+              setSrc(listEp[epIdx].link_m3u8);
+              setCurrentEp(listEp[epIdx].name);
+            }
+          } else {
+            setSrc(null);
+            setCurrentEp(null);
           }
         } else {
-          // NẾU URL TRỐNG (Chỉ có /phim/slug) -> RESET PLAYER VỀ NULL ĐỂ HIỆN BANNER
           setSrc(null);
           setCurrentEp(null);
         }
@@ -69,15 +76,14 @@ function MovieDetail() {
   const handleSelectEpisode = ep => {
     const svSlug = normalize(servers[currentServer]?.server_name);
     const epSlug = normalize(ep.name);
-    // Khi chọn tập, URL sẽ thay đổi -> useEffect trên sẽ chạy và thay Banner bằng Player
     navigate(`/phim/${slug}?${svSlug}&${epSlug}`);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const handleChangeServer = index => {
     setCurrentServer(index);
-    // Khi đổi server, chúng ta chưa play tập nào nên có thể giữ nguyên hoặc nhảy vào tập 1 của server đó
     const svSlug = normalize(servers[index]?.server_name);
+    // Khi đổi server, quay về banner của server đó để người dùng chọn tập
     navigate(`/phim/${slug}?${svSlug}`); 
   };
 
@@ -86,7 +92,17 @@ function MovieDetail() {
 
   return (
     <Container sx={{ mt: 2, mb: 5 }}>
-      {/* ĐIỀU KIỆN HIỂN THỊ: CÓ SRC THÌ HIỆN PLAYER, KHÔNG THÌ HIỆN BANNER */}
+      {/* Helmet để thay đổi Title trình duyệt */}
+      {movie && (
+        <Helmet>
+          <title>
+            {currentEp 
+              ? `Đang xem: ${movie.name} - ${currentEp} | KKPhim` 
+              : `${movie.name} (${movie.year}) | KKPhim`}
+          </title>
+        </Helmet>
+      )}
+
       {src ? (
         <VideoPlayer
           key={src} 
@@ -97,9 +113,9 @@ function MovieDetail() {
             name: movie?.name,
             poster: movie?.poster_url,
             episode: currentEp,
-            server: servers[currentServer]?.server_name
+            server: servers[currentServer]?.server_name,
+            currentTime: resumeTime // Đảm bảo truyền xuống để VideoPlayer sử dụng
           }}
-          resumeTime={resumeTime}
         />
       ) : (
         banner && (
@@ -140,28 +156,33 @@ function MovieDetail() {
 
       {movie && (
         <Box sx={{ mt: 3 }}>
-          <Typography variant="h4" fontWeight="bold">{movie.name}</Typography>
-          <Typography color="text.secondary" variant="h6">{movie.origin_name} ({movie.year})</Typography>
+          <Typography variant="h4" fontWeight="bold">
+            {movie.name}
+          </Typography>
+          <Typography color="text.secondary" variant="h6">
+            {movie.origin_name} ({movie.year})
+          </Typography>
           
           <Stack direction="row" spacing={1} mt={1} mb={2}>
-            <Chip label={movie.quality} color="primary" />
-            <Chip label={movie.lang} />
-            <Chip label={movie.time} />
+            <Chip label={movie.quality} color="primary" variant="outlined" />
+            <Chip label={movie.lang} variant="outlined" />
+            <Chip label={movie.time} variant="outlined" />
           </Stack>
 
-          <Typography variant="body1" sx={{ lineHeight: 1.7 }}>
+          <Typography variant="body1" sx={{ lineHeight: 1.7, color: "text.primary" }}>
             {movie.content?.replace(/<[^>]*>/g, "")}
           </Typography>
         </Box>
       )}
 
-      <Typography sx={{ mt: 4 }} variant="h6" fontWeight="bold">Chọn Server</Typography>
+      <Typography sx={{ mt: 4 }} variant="h6" fontWeight="bold">Chọn Nguồn Phát (Server)</Typography>
       <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mt: 1 }}>
         {servers.map((sv, i) => (
           <Button 
             key={i} 
             variant={i === currentServer ? "contained" : "outlined"} 
             onClick={() => handleChangeServer(i)}
+            size="small"
           >
             {sv.server_name}
           </Button>
@@ -175,6 +196,7 @@ function MovieDetail() {
             key={i} 
             variant={currentEp === ep.name ? "contained" : "outlined"} 
             onClick={() => handleSelectEpisode(ep)}
+            sx={{ borderRadius: 1 }}
           >
             {ep.name}
           </Button>
