@@ -3,81 +3,125 @@ import Hls from "hls.js";
 import { Card, Box, Typography } from "@mui/material";
 import { saveHistoryItem } from "../utils/history";
 
-const VideoPlayer = ({ src, title, movieInfo, onEnded }) => {
+const VideoPlayer = ({ src, title, movieInfo }) => {
   const videoRef = useRef(null);
   const hlsRef = useRef(null);
 
-  // 1. Khởi tạo Stream
+  /* =========================
+     Load video stream
+  ========================= */
   useEffect(() => {
     if (!videoRef.current || !src) return;
-    const video = videoRef.current;
-    const proxiedUrl = `/proxy-stream?url=${encodeURIComponent(src)}`;
 
-    if (hlsRef.current) hlsRef.current.destroy();
+    const video = videoRef.current;
+
+    const proxiedUrl =
+      `/proxy-stream?url=${encodeURIComponent(src)}`;
+
+    // destroy HLS cũ
+    if (hlsRef.current) {
+      hlsRef.current.destroy();
+      hlsRef.current = null;
+    }
 
     if (Hls.isSupported()) {
       const hls = new Hls();
+
       hls.loadSource(proxiedUrl);
       hls.attachMedia(video);
+
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        // Chỉ tự động play nếu không có resume time (để tránh lỗi trình duyệt chặn)
         video.play().catch(() => {});
       });
+
       hlsRef.current = hls;
-    } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
+    } else if (
+      video.canPlayType(
+        "application/vnd.apple.mpegurl"
+      )
+    ) {
       video.src = proxiedUrl;
+      video.addEventListener(
+        "loadedmetadata",
+        () => video.play().catch(() => {}),
+        { once: true }
+      );
     }
 
     return () => {
-      if (hlsRef.current) hlsRef.current.destroy();
+      if (hlsRef.current) {
+        hlsRef.current.destroy();
+        hlsRef.current = null;
+      }
     };
   }, [src]);
 
-  // 2. Resume thời gian (Dùng sự kiện loadedmetadata thay vì timeout)
+  /* =========================
+     Resume thời gian xem
+  ========================= */
   useEffect(() => {
-    const video = videoRef.current;
-    if (!video || !movieInfo?.currentTime) return;
+    if (!videoRef.current || !movieInfo) return;
 
-    const handleLoaded = () => {
-      if (video.currentTime !== movieInfo.currentTime) {
-        video.currentTime = movieInfo.currentTime;
-      }
-    };
+    const timer = setTimeout(() => {
+      videoRef.current.currentTime =
+        movieInfo.currentTime || 0;
+    }, 700);
 
-    video.addEventListener("loadedmetadata", handleLoaded);
-    return () => video.removeEventListener("loadedmetadata", handleLoaded);
-  }, [src, movieInfo?.currentTime]);
+    return () => clearTimeout(timer);
+  }, [src, movieInfo]);
 
-  // 3. Lưu lịch sử mỗi 5s
+  /* =========================
+     Lưu lịch sử xem
+  ========================= */
   useEffect(() => {
     if (!movieInfo) return;
+
     const interval = setInterval(() => {
       const video = videoRef.current;
-      if (video && !video.paused) {
-        saveHistoryItem({
-          ...movieInfo,
-          currentTime: video.currentTime,
-          updatedAt: Date.now(),
-        });
-      }
+      if (!video) return;
+
+      saveHistoryItem({
+        ...movieInfo,
+        currentTime: video.currentTime,
+        updatedAt: Date.now()
+      });
     }, 5000);
+
     return () => clearInterval(interval);
   }, [movieInfo]);
 
+  /* =========================
+     UI
+  ========================= */
   return (
-    <Card sx={{ mt: 2, bgcolor: "#1a1a1a", color: "white" }}>
+    <Card sx={{ mt: 2 }}>
       {title && (
         <Box sx={{ p: 2 }}>
-          <Typography variant="h6">{title}</Typography>
+          <Typography variant="h6">
+            {title}
+          </Typography>
         </Box>
       )}
-      <Box sx={{ width: "100%", maxWidth: 960, margin: "0 auto", bgcolor: "black", aspectRatio: "16/9" }}>
+
+      <Box
+        sx={{
+          width: "100%",
+          maxWidth: 960,
+          margin: "0 auto",
+          bgcolor: "black",
+          aspectRatio: "16/9"
+        }}
+      >
         <video
           ref={videoRef}
           controls
           autoPlay
-          onEnded={onEnded} // Tự động chuyển tập
-          style={{ width: "100%", height: "100%", objectFit: "contain" }}
+          style={{
+            width: "100%",
+            height: "100%",
+            objectFit: "contain",
+            borderRadius: 4
+          }}
         />
       </Box>
     </Card>
