@@ -8,11 +8,13 @@ import {
   CardContent,
   Button,
   Box,
-  Divider
+  Divider,
+  Tooltip
 } from "@mui/material";
 import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import DeleteSweepIcon from '@mui/icons-material/DeleteSweep';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 
 import {
   getHistory,
@@ -20,7 +22,7 @@ import {
   clearHistory
 } from "../utils/history";
 
-// Hàm chuẩn hóa URL để khớp với tập đang xem
+// Hàm chuẩn hóa URL
 const normalize = (str = "") =>
   str.toString().toLowerCase()
     .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
@@ -35,13 +37,20 @@ const getPosterUrl = (url) => {
 function HistoryPage() {
   const [history, setHistory] = useState([]);
 
+  // Load lịch sử khi vào trang
+  const loadHistory = () => {
+    const data = getHistory();
+    setHistory(data);
+  };
+
   useEffect(() => {
-    setHistory(getHistory());
+    loadHistory();
   }, []);
 
-  const handleDelete = (slug) => {
-    removeHistoryItem(slug);
-    setHistory(getHistory());
+  // Xóa một mục phim (Xóa dựa trên slug và episode để khớp với logic filter mới)
+  const handleDelete = (slug, episode) => {
+    removeHistoryItem(slug, episode);
+    loadHistory(); // Reload lại state sau khi xóa
   };
 
   const handleClear = () => {
@@ -58,17 +67,18 @@ function HistoryPage() {
       </Helmet>
 
       <Box display="flex" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
-        <Typography variant="h5" sx={{ fontWeight: "bold" }}>
-          🕒 Lịch sử xem của bạn
+        <Typography variant="h5" sx={{ fontWeight: "bold", color: "primary.main" }}>
+          🕒 LỊCH SỬ XEM
         </Typography>
         
         {history.length > 0 && (
           <Button 
-            variant="outlined" 
+            variant="contained" 
             color="error" 
             startIcon={<DeleteSweepIcon />}
             onClick={handleClear}
             size="small"
+            sx={{ borderRadius: 2 }}
           >
             Xóa toàn bộ
           </Button>
@@ -79,82 +89,113 @@ function HistoryPage() {
 
       {history.length === 0 ? (
         <Box sx={{ textAlign: 'center', mt: 10 }}>
-          <Typography color="text.secondary">Bạn chưa xem phim nào gần đây.</Typography>
-          <Button component={Link} to="/" sx={{ mt: 2 }}>Khám phá ngay</Button>
+          <Typography variant="h6" color="text.secondary">
+            Bạn chưa xem phim nào gần đây.
+          </Typography>
+          <Button 
+            component={Link} 
+            to="/" 
+            variant="contained" 
+            sx={{ mt: 2, borderRadius: 5 }}
+          >
+            Khám phá phim ngay
+          </Button>
         </Box>
       ) : (
         <Grid container spacing={2}>
-          {history.map((m) => (
-            <Grid item xs={6} sm={4} md={3} lg={2.4} key={m.slug}>
+          {history.map((m, index) => (
+            <Grid item xs={6} sm={4} md={3} lg={2.4} key={`${m.slug}-${m.episode}-${index}`}>
               <Card
                 sx={{
                   height: '100%',
                   display: 'flex',
                   flexDirection: 'column',
-                  transition: "transform 0.3s",
-                  "&:hover": { transform: "scale(1.03)", boxShadow: 6 }
+                  position: 'relative',
+                  transition: "all 0.3s ease-in-out",
+                  borderRadius: 2,
+                  "&:hover": { 
+                    transform: "translateY(-5px)", 
+                    boxShadow: "0 10px 20px rgba(0,0,0,0.2)" 
+                  }
                 }}
               >
+                {/* Nút Xóa nhanh ở góc */}
+                <Tooltip title="Xóa mục này">
+                  <Button
+                    onClick={() => handleDelete(m.slug, m.episode)}
+                    sx={{
+                      position: 'absolute',
+                      top: 5,
+                      right: 5,
+                      minWidth: 35,
+                      height: 35,
+                      borderRadius: '50%',
+                      bgcolor: 'rgba(0,0,0,0.5)',
+                      color: 'white',
+                      zIndex: 2,
+                      '&:hover': { bgcolor: 'error.main' }
+                    }}
+                  >
+                    <DeleteOutlineIcon fontSize="small" />
+                  </Button>
+                </Tooltip>
+
                 <Link 
                   to={`/phim/${m.slug}?${normalize(m.server)}&${normalize(m.episode)}`} 
-                  style={{ textDecoration: 'none' }}
+                  style={{ textDecoration: 'none', color: 'inherit' }}
                 >
-                  <Box sx={{ position: 'relative' }}>
+                  <Box sx={{ position: 'relative', overflow: 'hidden' }}>
                     <CardMedia
                       component="img"
-                      height="280"
+                      height="260"
                       image={getPosterUrl(m.poster)}
                       alt={m.name}
-                      sx={{ objectFit: 'cover' }}
+                      sx={{ 
+                        objectFit: 'cover',
+                        borderTopLeftRadius: 8,
+                        borderTopRightRadius: 8
+                      }}
                       onError={(e) => { e.target.src = "/no-image.jpg"; }}
                     />
-                    {/* Badge hiển thị tập đang xem dở */}
                     <Box 
                       sx={{
                         position: 'absolute',
                         bottom: 0,
                         left: 0,
                         right: 0,
-                        bgcolor: 'rgba(0,0,0,0.7)',
+                        bgcolor: 'primary.main',
                         color: 'white',
                         p: 0.5,
                         textAlign: 'center',
-                        fontSize: '0.75rem'
+                        fontSize: '0.75rem',
+                        fontWeight: 'bold'
                       }}
                     >
-                      Đang xem: {m.episode}
+                      Tập: {m.episode}
                     </Box>
                   </Box>
+
+                  <CardContent sx={{ flexGrow: 1, p: 1.5 }}>
+                    <Typography 
+                      variant="subtitle2" 
+                      sx={{ 
+                        fontWeight: 'bold', 
+                        height: 40, 
+                        overflow: 'hidden',
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                        lineHeight: 1.2
+                      }}
+                    >
+                      {m.name}
+                    </Typography>
+                    
+                    <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 1 }}>
+                      {new Date(m.updatedAt).toLocaleDateString('vi-VN')}
+                    </Typography>
+                  </CardContent>
                 </Link>
-
-                <CardContent sx={{ flexGrow: 1, p: 1.5 }}>
-                  <Typography 
-                    variant="subtitle2" 
-                    sx={{ 
-                      fontWeight: 'bold', 
-                      height: 40, 
-                      overflow: 'hidden',
-                      display: '-webkit-box',
-                      WebkitLineClamp: 2,
-                      WebkitBoxOrient: 'vertical',
-                      color: 'text.primary',
-                      mb: 1
-                    }}
-                  >
-                    {m.name}
-                  </Typography>
-
-                  <Button
-                    fullWidth
-                    variant="text"
-                    size="small"
-                    color="error"
-                    onClick={() => handleDelete(m.slug)}
-                    sx={{ fontSize: '0.7rem' }}
-                  >
-                    Xóa khỏi lịch sử
-                  </Button>
-                </CardContent>
               </Card>
             </Grid>
           ))}
