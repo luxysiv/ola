@@ -39,10 +39,12 @@ function MovieDetail() {
         setMovie(movieData);
         setServers(epData);
 
+        // Lấy lịch sử xem của bộ phim này
         const history = getHistory();
         const historyItem = history.find(m => m.slug === slug);
         if (historyItem) setResumeData(historyItem);
 
+        // Phân tích URL
         const searchPath = decodeURIComponent(location.search.substring(1)); 
         const parts = searchPath.split("&").filter(Boolean);
 
@@ -79,15 +81,18 @@ function MovieDetail() {
       });
   }, [slug, location.search]);
 
+  // Hàm chọn tập phim
   const handleSelectEpisode = useCallback((ep, time = 0) => {
     const svSlug = normalize(servers[currentServer]?.server_name);
     const epSlug = normalize(ep.name);
+    
     setResumeData(prev => ({ ...prev, episode: ep.name, currentTime: time }));
+    
     navigate(`/phim/${slug}?${svSlug}&${epSlug}`);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [servers, currentServer, slug, navigate]);
 
-  // Hàm quay về trang banner
+  // Hàm quay về trang banner (xóa query tập phim)
   const handleBackToBanner = () => {
     navigate(`/phim/${slug}`);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -102,6 +107,7 @@ function MovieDetail() {
   const episodeList = servers[currentServer]?.server_data || [];
   const currentIndex = episodeList.findIndex(e => e.name === currentEp);
   
+  // Logic Auto Next
   const handleAutoNext = () => {
     if (currentIndex !== -1 && currentIndex < episodeList.length - 1) {
       handleSelectEpisode(episodeList[currentIndex + 1]);
@@ -135,17 +141,23 @@ function MovieDetail() {
           <VideoPlayer
             key={src} 
             src={src}
-            // SỬA TẠI ĐÂY: Biến tiêu đề thành một Link/Button để quay về banner
             title={
-              <Box 
-                onClick={handleBackToBanner}
-                sx={{ 
-                  cursor: 'pointer', 
-                  display: 'inline-block',
-                  '&:hover': { color: 'primary.main', textDecoration: 'underline' } 
-                }}
-              >
-                {movie?.name} - Tập {currentEp}
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                <Typography
+                  variant="subtitle1"
+                  component="span"
+                  onClick={handleBackToBanner}
+                  sx={{ 
+                    cursor: 'pointer', 
+                    fontWeight: 'bold',
+                    '&:hover': { color: 'error.main', textDecoration: 'underline' } 
+                  }}
+                >
+                  {movie?.name}
+                </Typography>
+                <Typography variant="subtitle1" component="span" sx={{ opacity: 0.8 }}>
+                  - Tập {currentEp}
+                </Typography>
               </Box>
             }
             onVideoEnd={handleAutoNext}
@@ -159,7 +171,7 @@ function MovieDetail() {
             }}
           />
 
-          {/* Nút điều hướng Tập trước / Tập tiếp */}
+          {/* Nút điều hướng Tập trước / Tập tiếp ngay dưới Player */}
           {episodeList.length > 1 && (
             <Stack direction="row" spacing={2} justifyContent="center" sx={{ mt: 2 }}>
               {currentIndex > 0 && (
@@ -236,7 +248,6 @@ function MovieDetail() {
         )
       )}
 
-      {/* Thông tin phim (Giữ nguyên) */}
       {movie && (
         <Box sx={{ mt: 3 }}>
           <Typography variant="h4" fontWeight="bold">{movie.name}</Typography>
@@ -256,7 +267,7 @@ function MovieDetail() {
         </Box>
       )}
 
-      <Typography sx={{ mt: 4 }} variant="h6" fontWeight="bold">Chọn Nguồn Phát</Typography>
+      <Typography sx={{ mt: 4 }} variant="h6" fontWeight="bold">Chọn Nguồn Phát (Server)</Typography>
       <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mt: 1 }}>
         {servers.map((sv, i) => (
           <Button 
