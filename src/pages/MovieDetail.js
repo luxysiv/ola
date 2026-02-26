@@ -30,7 +30,6 @@ function MovieDetail() {
   const [isInitialLoading, setIsInitialLoading] = useState(true);
 
   useEffect(() => {
-    // Mỗi khi slug thay đổi, bật loading để tránh nhảy UI banner
     setIsInitialLoading(true);
 
     axios.get(`https://phimapi.com/phim/${slug}`)
@@ -40,12 +39,10 @@ function MovieDetail() {
         setMovie(movieData);
         setServers(epData);
 
-        // Lấy lịch sử xem của bộ phim này
         const history = getHistory();
         const historyItem = history.find(m => m.slug === slug);
         if (historyItem) setResumeData(historyItem);
 
-        // Phân tích URL
         const searchPath = decodeURIComponent(location.search.substring(1)); 
         const parts = searchPath.split("&").filter(Boolean);
 
@@ -82,17 +79,19 @@ function MovieDetail() {
       });
   }, [slug, location.search]);
 
-  // Hàm chọn tập phim (dùng useCallback để tối ưu)
   const handleSelectEpisode = useCallback((ep, time = 0) => {
     const svSlug = normalize(servers[currentServer]?.server_name);
     const epSlug = normalize(ep.name);
-    
-    // Cập nhật resumeData tạm thời để truyền xuống VideoPlayer ngay lập tức
     setResumeData(prev => ({ ...prev, episode: ep.name, currentTime: time }));
-    
     navigate(`/phim/${slug}?${svSlug}&${epSlug}`);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [servers, currentServer, slug, navigate]);
+
+  // Hàm quay về trang banner
+  const handleBackToBanner = () => {
+    navigate(`/phim/${slug}`);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   const handleChangeServer = (index) => {
     setCurrentServer(index);
@@ -103,7 +102,6 @@ function MovieDetail() {
   const episodeList = servers[currentServer]?.server_data || [];
   const currentIndex = episodeList.findIndex(e => e.name === currentEp);
   
-  // Logic Auto Next
   const handleAutoNext = () => {
     if (currentIndex !== -1 && currentIndex < episodeList.length - 1) {
       handleSelectEpisode(episodeList[currentIndex + 1]);
@@ -137,7 +135,19 @@ function MovieDetail() {
           <VideoPlayer
             key={src} 
             src={src}
-            title={`${movie?.name} - Tập ${currentEp}`}
+            // SỬA TẠI ĐÂY: Biến tiêu đề thành một Link/Button để quay về banner
+            title={
+              <Box 
+                onClick={handleBackToBanner}
+                sx={{ 
+                  cursor: 'pointer', 
+                  display: 'inline-block',
+                  '&:hover': { color: 'primary.main', textDecoration: 'underline' } 
+                }}
+              >
+                {movie?.name} - Tập {currentEp}
+              </Box>
+            }
             onVideoEnd={handleAutoNext}
             movieInfo={{
               slug,
@@ -145,7 +155,6 @@ function MovieDetail() {
               poster: movie?.poster_url,
               episode: currentEp,
               server: servers[currentServer]?.server_name,
-              // Chỉ resume nếu tập đang phát trùng với tập trong lịch sử
               currentTime: (resumeData?.episode === currentEp) ? resumeData.currentTime : 0
             }}
           />
@@ -227,6 +236,7 @@ function MovieDetail() {
         )
       )}
 
+      {/* Thông tin phim (Giữ nguyên) */}
       {movie && (
         <Box sx={{ mt: 3 }}>
           <Typography variant="h4" fontWeight="bold">{movie.name}</Typography>
