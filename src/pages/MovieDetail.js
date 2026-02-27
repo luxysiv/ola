@@ -5,6 +5,7 @@ import { Helmet } from "react-helmet-async";
 import VideoPlayer from "../components/VideoPlayer";
 import { getHistory } from "../utils/history";
 import { Container, Typography, Button, Box, Chip, Stack, CircularProgress } from "@mui/material";
+import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import SkipNextIcon from '@mui/icons-material/SkipNext';
 import SkipPreviousIcon from '@mui/icons-material/SkipPrevious';
 import ReplayIcon from '@mui/icons-material/Replay';
@@ -38,7 +39,7 @@ function MovieDetail() {
         setMovie(movieData);
         setServers(epData);
 
-        // Lấy lịch sử xem  
+        // Lấy lịch sử xem của bộ phim này  
         const history = getHistory();
         const historyItem = history.find(m => m.slug === slug);
         if (historyItem) setResumeData(historyItem);
@@ -81,6 +82,7 @@ function MovieDetail() {
 
   }, [slug, location.search]);
 
+  // Hàm chọn tập phim
   const handleSelectEpisode = useCallback((ep, time = 0) => {
     if (!ep) return;
     const svSlug = normalize(servers[currentServer]?.server_name);
@@ -91,6 +93,7 @@ function MovieDetail() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [servers, currentServer, slug, navigate]);
 
+  // Hàm quay về trang banner (xóa query tập phim)
   const handleBackToBanner = () => {
     navigate(`/phim/${slug}`);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -105,6 +108,7 @@ function MovieDetail() {
   const episodeList = servers[currentServer]?.server_data || [];
   const currentIndex = episodeList.findIndex(e => e.name === currentEp);
 
+  // Logic Auto Next
   const handleAutoNext = () => {
     if (currentIndex !== -1 && currentIndex < episodeList.length - 1) {
       handleSelectEpisode(episodeList[currentIndex + 1]);
@@ -168,27 +172,30 @@ function MovieDetail() {
             }}
           />
 
-          <Stack direction="row" spacing={2} justifyContent="center" sx={{ mt: 2 }}>
-            {currentIndex > 0 && (
-              <Button
-                variant="outlined"
-                startIcon={<SkipPreviousIcon />}
-                onClick={() => handleSelectEpisode(episodeList[currentIndex - 1])}
-              >
-                Tập {episodeList[currentIndex - 1].name}
-              </Button>
-            )}
-            {currentIndex < episodeList.length - 1 && (
-              <Button
-                variant="contained"
-                color="error"
-                endIcon={<SkipNextIcon />}
-                onClick={() => handleSelectEpisode(episodeList[currentIndex + 1])}
-              >
-                Tập {episodeList[currentIndex + 1].name}
-              </Button>
-            )}
-          </Stack>
+          {/* Nút điều hướng Tập trước / Tập tiếp */}
+          {episodeList.length > 1 && (
+            <Stack direction="row" spacing={2} justifyContent="center" sx={{ mt: 2 }}>
+              {currentIndex > 0 && (
+                <Button
+                  variant="outlined"
+                  startIcon={<SkipPreviousIcon />}
+                  onClick={() => handleSelectEpisode(episodeList[currentIndex - 1])}
+                >
+                  Tập {episodeList[currentIndex - 1].name}
+                </Button>
+              )}
+              {currentIndex < episodeList.length - 1 && (
+                <Button
+                  variant="contained"
+                  color="error"
+                  endIcon={<SkipNextIcon />}
+                  onClick={() => handleSelectEpisode(episodeList[currentIndex + 1])}
+                >
+                  Tập {episodeList[currentIndex + 1].name}
+                </Button>
+              )}
+            </Stack>
+          )}
         </>
       ) : (
         banner && (
@@ -208,28 +215,38 @@ function MovieDetail() {
               overflow: "hidden"
             }}
           >
-            <Box sx={{ position: "absolute", inset: 0, bgcolor: "rgba(0,0,0,0.6)" }} />
+            <Box sx={{ position: "absolute", inset: 0, bgcolor: "rgba(0,0,0,0.5)" }} />
 
-            {resumeData && (
-              <Stack direction="column" alignItems="center" spacing={2} sx={{ zIndex: 1 }}>
-                <Typography variant="h6" sx={{ color: "white", textShadow: "1px 1px 4px rgba(0,0,0,0.8)" }}>
-                  Bạn đang xem dở tập {resumeData.episode}
-                </Typography>
+            <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ zIndex: 1 }}>
+              {resumeData ? (
+                /* HIỂN THỊ KHI ĐÃ CÓ LỊCH SỬ */
                 <Button
                   variant="contained"
                   size="large"
                   color="error"
                   startIcon={<ReplayIcon />}
-                  sx={{ fontWeight: "bold", px: 6, py: 1.5, borderRadius: 5 }}
+                  sx={{ fontWeight: "bold", px: 4, py: 1.5, borderRadius: 2 }}
                   onClick={() => {
                     const epToResume = episodeList.find(e => e.name === resumeData.episode) || episodeList[0];
                     handleSelectEpisode(epToResume, resumeData.currentTime);
                   }}
                 >
-                  TIẾP TỤC XEM
+                  XEM TIẾP TẬP {resumeData.episode}
                 </Button>
-              </Stack>
-            )}
+              ) : (
+                /* HIỂN THỊ KHI CHƯA CÓ LỊCH SỬ */
+                <Button
+                  variant="contained"
+                  size="large"
+                  color="error"
+                  startIcon={<PlayArrowIcon />}
+                  sx={{ fontWeight: "bold", px: 6, py: 1.5, borderRadius: 2 }}
+                  onClick={() => handleSelectEpisode(episodeList[0])}
+                >
+                  XEM NGAY
+                </Button>
+              )}
+            </Stack>
           </Box>
         )
       )}
