@@ -4,31 +4,17 @@ import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import VideoPlayer from "../components/VideoPlayer";
 import { getHistory } from "../utils/history";
-import {
-  Container,
-  Typography,
-  Button,
-  Box,
-  Chip,
-  Stack,
-  CircularProgress
-} from "@mui/material";
-import PlayArrowIcon from "@mui/icons-material/PlayArrow";
-import SkipNextIcon from "@mui/icons-material/SkipNext";
-import SkipPreviousIcon from "@mui/icons-material/SkipPrevious";
-import ReplayIcon from "@mui/icons-material/Replay";
+import { Container, Typography, Button, Box, Chip, Stack, CircularProgress } from "@mui/material";
+import PlayArrowIcon from '@mui/icons-material/PlayArrow';
+import SkipNextIcon from '@mui/icons-material/SkipNext';
+import SkipPreviousIcon from '@mui/icons-material/SkipPrevious';
+import ReplayIcon from '@mui/icons-material/Replay';
 
 const normalize = (str = "") =>
-  str
-    .toString()
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/đ/g, "d")
-    .replace(/[()#]/g, "")
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-")
-    .trim();
+  str.toString().toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d").replace(/[()#]/g, "")
+    .replace(/\s+/g, "-").replace(/-+/g, "-").trim();
 
 function MovieDetail() {
   const { slug } = useParams();
@@ -46,78 +32,68 @@ function MovieDetail() {
   useEffect(() => {
     setIsInitialLoading(true);
 
-    axios
-      .get(`https://phimapi.com/phim/${slug}`)
-      .then((res) => {
+    axios.get(`https://phimapi.com/phim/${slug}`)
+      .then(res => {
         const movieData = res.data.movie;
         const epData = res.data.episodes || [];
-
         setMovie(movieData);
         setServers(epData);
 
-        // Lấy lịch sử
+        // Lấy lịch sử xem của bộ phim này  
         const history = getHistory();
-        const historyItem = history.find((m) => m.slug === slug);
+        const historyItem = history.find(m => m.slug === slug);
         if (historyItem) setResumeData(historyItem);
 
-        const searchPath = decodeURIComponent(
-          location.search.substring(1)
-        );
+        const searchPath = decodeURIComponent(location.search.substring(1));
         const parts = searchPath.split("&").filter(Boolean);
 
         if (parts.length > 0) {
           let serverSlug = parts[0];
           let epSlug = parts[1];
 
-          let svIdx = epData.findIndex(
-            (s) => normalize(s.server_name) === serverSlug
-          );
+          let svIdx = epData.findIndex(s => normalize(s.server_name) === serverSlug);
           if (svIdx === -1) svIdx = 0;
-
           setCurrentServer(svIdx);
 
           const listEp = epData[svIdx]?.server_data || [];
 
           if (epSlug) {
-            let epIdx = listEp.findIndex(
-              (e) => normalize(e.name) === epSlug
-            );
+            let epIdx = listEp.findIndex(e => normalize(e.name) === epSlug);
             if (epIdx === -1) epIdx = 0;
 
             if (listEp[epIdx]) {
               setSrc(listEp[epIdx].link_m3u8);
               setCurrentEp(listEp[epIdx].name);
             }
+          } else {
+            setSrc(null);
+            setCurrentEp(null);
           }
+        } else {
+          setSrc(null);
+          setCurrentEp(null);
         }
       })
       .catch(console.error)
       .finally(() => {
         setIsInitialLoading(false);
       });
+
   }, [slug, location.search]);
 
-  // ===============================
-  // CHỌN TẬP
-  // ===============================
-  const handleSelectEpisode = useCallback(
-    (ep, time = 0) => {
-      const svSlug = normalize(
-        servers[currentServer]?.server_name
-      );
-      const epSlug = normalize(ep.name);
+  // Hàm chọn tập phim - Thêm tham số forceTime để ép về 0:00 khi cần
+  const handleSelectEpisode = useCallback((ep, time = 0) => {
+    if (!ep) return;
+    const svSlug = normalize(servers[currentServer]?.server_name);
+    const epSlug = normalize(ep.name);
 
-      setResumeData((prev) => ({
-        ...prev,
-        episode: ep.name,
-        currentTime: time
-      }));
+    // Cập nhật resumeData tạm thời để Player nhận đúng currentTime
+    setResumeData(prev => ({ ...prev, episode: ep.name, currentTime: time }));
 
-      navigate(`/phim/${slug}?${svSlug}&${epSlug}`);
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    },
-    [servers, currentServer, slug, navigate]
-  );
+    navigate(`/phim/${slug}?${svSlug}&${epSlug}`);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+
+  }, [servers, currentServer, slug, navigate]);
 
   const handleBackToBanner = () => {
     navigate(`/phim/${slug}`);
@@ -130,42 +106,26 @@ function MovieDetail() {
     navigate(`/phim/${slug}?${svSlug}`);
   };
 
-  const episodeList =
-    servers[currentServer]?.server_data || [];
-
-  const currentIndex = episodeList.findIndex(
-    (e) => e.name === currentEp
-  );
+  const episodeList = servers[currentServer]?.server_data || [];
+  const currentIndex = episodeList.findIndex(e => e.name === currentEp);
 
   const handleAutoNext = () => {
-    if (
-      currentIndex !== -1 &&
-      currentIndex < episodeList.length - 1
-    ) {
-      handleSelectEpisode(
-        episodeList[currentIndex + 1],
-        0
-      );
+    if (currentIndex !== -1 && currentIndex < episodeList.length - 1) {
+      handleSelectEpisode(episodeList[currentIndex + 1], 0);
     }
   };
 
   if (isInitialLoading) {
     return (
-      <Box
-        sx={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          minHeight: "50vh"
-        }}
-      >
+      <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "50vh" }}>
         <CircularProgress color="error" />
       </Box>
     );
   }
 
-  const banner =
-    movie?.thumb_url || movie?.poster_url;
+  const banner = movie?.thumb_url || movie?.poster_url;
+  // Kiểm tra xem phim có nhiều tập hay không
+  const isSeries = episodeList.length > 1;
 
   return (
     <Container sx={{ mt: 2, mb: 5 }}>
@@ -179,42 +139,30 @@ function MovieDetail() {
         </Helmet>
       )}
 
-      {/* ================= VIDEO PLAYER ================= */}
       {src ? (
         <>
           <VideoPlayer
             key={src}
             src={src}
             title={
-              <Box
-                sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 0.5
-                }}
-              >
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                 <Typography
                   variant="subtitle1"
                   component="span"
                   onClick={handleBackToBanner}
                   sx={{
-                    cursor: "pointer",
-                    fontWeight: "bold",
-                    "&:hover": {
-                      color: "error.main",
-                      textDecoration: "underline"
-                    }
+                    cursor: 'pointer',
+                    fontWeight: 'bold',
+                    '&:hover': { color: 'error.main', textDecoration: 'underline' }
                   }}
                 >
                   {movie?.name}
                 </Typography>
-                <Typography
-                  variant="subtitle1"
-                  component="span"
-                  sx={{ opacity: 0.8 }}
-                >
-                  - Tập {currentEp}
-                </Typography>
+                {isSeries && (
+                  <Typography variant="subtitle1" component="span" sx={{ opacity: 0.8 }}>
+                    - Tập {currentEp}
+                  </Typography>
+                )}
               </Box>
             }
             onVideoEnd={handleAutoNext}
@@ -223,50 +171,29 @@ function MovieDetail() {
               name: movie?.name,
               poster: movie?.poster_url,
               episode: currentEp,
-              server:
-                servers[currentServer]?.server_name,
-              currentTime:
-                resumeData?.episode === currentEp
-                  ? resumeData.currentTime || 0
-                  : 0
+              server: servers[currentServer]?.server_name,
+              // Quan trọng: Truyền đúng thời gian từ resumeData nếu đúng tập đang chọn
+              currentTime: (resumeData?.episode === currentEp) ? (resumeData.currentTime || 0) : 0
             }}
           />
 
-          {/* Nút Tập trước / Tập tiếp */}
-          {episodeList.length > 1 && (
-            <Stack
-              direction="row"
-              spacing={2}
-              justifyContent="center"
-              sx={{ mt: 2 }}
-            >
+          {isSeries && (
+            <Stack direction="row" spacing={2} justifyContent="center" sx={{ mt: 2 }}>
               {currentIndex > 0 && (
                 <Button
                   variant="outlined"
                   startIcon={<SkipPreviousIcon />}
-                  onClick={() =>
-                    handleSelectEpisode(
-                      episodeList[currentIndex - 1],
-                      0
-                    )
-                  }
+                  onClick={() => handleSelectEpisode(episodeList[currentIndex - 1], 0)}
                 >
                   Tập {episodeList[currentIndex - 1].name}
                 </Button>
               )}
-
-              {currentIndex <
-                episodeList.length - 1 && (
+              {currentIndex < episodeList.length - 1 && (
                 <Button
                   variant="contained"
                   color="error"
                   endIcon={<SkipNextIcon />}
-                  onClick={() =>
-                    handleSelectEpisode(
-                      episodeList[currentIndex + 1],
-                      0
-                    )
-                  }
+                  onClick={() => handleSelectEpisode(episodeList[currentIndex + 1], 0)}
                 >
                   Tập {episodeList[currentIndex + 1].name}
                 </Button>
@@ -292,130 +219,92 @@ function MovieDetail() {
               overflow: "hidden"
             }}
           >
-            <Box
-              sx={{
-                position: "absolute",
-                inset: 0,
-                bgcolor: "rgba(0,0,0,0.5)"
-              }}
-            />
+            <Box sx={{ position: "absolute", inset: 0, bgcolor: "rgba(0,0,0,0.5)" }} />
 
-            <Stack
-              direction={{ xs: "column", sm: "row" }}
-              spacing={2}
-              sx={{ zIndex: 1 }}
-            >
-              {/* XEM TỪ ĐẦU */}
-              {episodeList.length > 0 && (
+            <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ zIndex: 1 }}>
+              {/* Nút XEM TỪ ĐẦU: Luôn truyền tham số time = 0 */}
+              <Button
+                variant="contained"
+                size="large"
+                color="error"
+                startIcon={<PlayArrowIcon />}
+                sx={{ fontWeight: "bold", px: 4 }}
+                onClick={() => handleSelectEpisode(episodeList[0], 0)}
+              >
+                XEM TỪ ĐẦU
+              </Button>
+
+              {/* Nút XEM TIẾP: Logic thay đổi theo loại phim */}
+              {resumeData && (
                 <Button
                   variant="contained"
                   size="large"
-                  color="error"
-                  startIcon={<PlayArrowIcon />}
-                  sx={{
-                    fontWeight: "bold",
-                    px: 4
+                  color="primary"
+                  startIcon={<ReplayIcon />}
+                  sx={{ fontWeight: "bold", px: 4 }}
+                  onClick={() => {
+                    const epToResume = episodeList.find(e => e.name === resumeData.episode) || episodeList[0];
+                    handleSelectEpisode(epToResume, resumeData.currentTime);
                   }}
-                  onClick={() =>
-                    handleSelectEpisode(
-                      episodeList[0],
-                      0
-                    )
-                  }
                 >
-                  XEM TỪ ĐẦU
+                  {isSeries ? `XEM TIẾP TẬP ${resumeData.episode}` : "XEM TIẾP"}
                 </Button>
               )}
-
-              {/* XEM TIẾP */}
-              {resumeData &&
-                resumeData.currentTime > 0 && (
-                  <Button
-                    variant="contained"
-                    size="large"
-                    color="primary"
-                    startIcon={<ReplayIcon />}
-                    sx={{
-                      fontWeight: "bold",
-                      px: 4
-                    }}
-                    onClick={() => {
-                      const epToResume =
-                        episodeList.find(
-                          (e) =>
-                            e.name ===
-                            resumeData.episode
-                        ) || episodeList[0];
-
-                      handleSelectEpisode(
-                        epToResume,
-                        resumeData.currentTime
-                      );
-                    }}
-                  >
-                    {episodeList.length > 1
-                      ? `XEM TIẾP TẬP ${resumeData.episode}`
-                      : `XEM TIẾP`}
-                  </Button>
-                )}
             </Stack>
           </Box>
         )
       )}
 
-      {/* ================= THÔNG TIN PHIM ================= */}
       {movie && (
         <Box sx={{ mt: 3 }}>
-          <Typography
-            variant="h4"
-            fontWeight="bold"
-          >
-            {movie.name}
-          </Typography>
-          <Typography
-            color="text.secondary"
-            variant="h6"
-          >
+          <Typography variant="h4" fontWeight="bold">{movie.name}</Typography>
+          <Typography color="text.secondary" variant="h6">
             {movie.origin_name} ({movie.year})
           </Typography>
 
-          <Stack
-            direction="row"
-            spacing={1}
-            mt={1}
-            mb={2}
-          >
-            <Chip
-              label={movie.quality}
-              color="primary"
-              variant="outlined"
-              size="small"
-            />
-            <Chip
-              label={movie.lang}
-              variant="outlined"
-              size="small"
-            />
-            <Chip
-              label={movie.time}
-              variant="outlined"
-              size="small"
-            />
+          <Stack direction="row" spacing={1} mt={1} mb={2}>
+            <Chip label={movie.quality} color="primary" variant="outlined" size="small" />
+            <Chip label={movie.lang} variant="outlined" size="small" />
+            <Chip label={movie.time} variant="outlined" size="small" />
           </Stack>
 
-          <Typography
-            variant="body1"
-            sx={{
-              lineHeight: 1.7,
-              opacity: 0.8
-            }}
-          >
-            {movie.content?.replace(
-              /<[^>]*>/g,
-              ""
-            )}
+          <Typography variant="body1" sx={{ lineHeight: 1.7, color: "text.primary", opacity: 0.8 }}>
+            {movie.content?.replace(/<[^>]*>/g, "")}
           </Typography>
         </Box>
+      )}
+
+      <Typography sx={{ mt: 4 }} variant="h6" fontWeight="bold">Chọn Nguồn Phát (Server)</Typography>
+      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mt: 1 }}>
+        {servers.map((sv, i) => (
+          <Button
+            key={i}
+            variant={i === currentServer ? "contained" : "outlined"}
+            onClick={() => handleChangeServer(i)}
+            size="small"
+          >
+            {sv.server_name}
+          </Button>
+        ))}
+      </Box>
+
+      {isSeries && (
+        <>
+          <Typography sx={{ mt: 3 }} variant="h6" fontWeight="bold">Danh sách tập</Typography>
+          <Box sx={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(90px, 1fr))", gap: 1, mt: 1 }}>
+            {episodeList.map((ep, i) => (
+              <Button
+                key={i}
+                variant={currentEp === ep.name ? "contained" : "outlined"}
+                color={currentEp === ep.name ? "error" : "primary"}
+                onClick={() => handleSelectEpisode(ep, 0)} // Chọn tập lẻ mặc định từ đầu
+                sx={{ borderRadius: 1 }}
+              >
+                {ep.name}
+              </Button>
+            ))}
+          </Box>
+        </>
       )}
     </Container>
   );
