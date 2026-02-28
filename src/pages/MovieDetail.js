@@ -4,7 +4,7 @@ import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import VideoPlayer from "../components/VideoPlayer";
 import { getHistory } from "../utils/history";
-import { Container, Typography, Button, Box, Chip, Stack, CircularProgress } from "@mui/material";
+import { Container, Typography, Button, Box, Chip, Stack, CircularProgress, Grid, Divider } from "@mui/material";
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import SkipNextIcon from '@mui/icons-material/SkipNext';
 import SkipPreviousIcon from '@mui/icons-material/SkipPrevious';
@@ -39,12 +39,10 @@ function MovieDetail() {
         setMovie(movieData);
         setServers(epData);
 
-        // Lấy lịch sử xem của bộ phim này  
         const history = getHistory();
         const historyItem = history.find(m => m.slug === slug);
         if (historyItem) setResumeData(historyItem);
 
-        // Phân tích URL  
         const searchPath = decodeURIComponent(location.search.substring(1));
         const parts = searchPath.split("&").filter(Boolean);
 
@@ -66,13 +64,7 @@ function MovieDetail() {
               setSrc(listEp[epIdx].link_m3u8);
               setCurrentEp(listEp[epIdx].name);
             }
-          } else {
-            setSrc(null);
-            setCurrentEp(null);
           }
-        } else {
-          setSrc(null);
-          setCurrentEp(null);
         }
       })
       .catch(console.error)
@@ -82,7 +74,6 @@ function MovieDetail() {
 
   }, [slug, location.search]);
 
-  // Hàm chọn tập phim
   const handleSelectEpisode = useCallback((ep, time = 0) => {
     if (!ep) return;
     const svSlug = normalize(servers[currentServer]?.server_name);
@@ -93,7 +84,6 @@ function MovieDetail() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [servers, currentServer, slug, navigate]);
 
-  // Hàm quay về trang banner (xóa query tập phim)
   const handleBackToBanner = () => {
     navigate(`/phim/${slug}`);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -108,7 +98,6 @@ function MovieDetail() {
   const episodeList = servers[currentServer]?.server_data || [];
   const currentIndex = episodeList.findIndex(e => e.name === currentEp);
 
-  // Logic Auto Next
   const handleAutoNext = () => {
     if (currentIndex !== -1 && currentIndex < episodeList.length - 1) {
       handleSelectEpisode(episodeList[currentIndex + 1]);
@@ -131,8 +120,8 @@ function MovieDetail() {
         <Helmet>
           <title>
             {currentEp
-              ? `Tập ${currentEp} - ${movie.name} | KKPhim`
-              : `${movie.name} (${movie.year}) | KKPhim`}
+              ? `${currentEp} - ${movie.name}`
+              : `${movie.name} (${movie.year})`}
           </title>
         </Helmet>
       )}
@@ -157,7 +146,7 @@ function MovieDetail() {
                   {movie?.name}
                 </Typography>
                 <Typography variant="subtitle1" component="span" sx={{ opacity: 0.8 }}>
-                  - Tập {currentEp}
+                   - {currentEp}
                 </Typography>
               </Box>
             }
@@ -172,7 +161,6 @@ function MovieDetail() {
             }}
           />
 
-          {/* Nút điều hướng Tập trước / Tập tiếp */}
           {episodeList.length > 1 && (
             <Stack direction="row" spacing={2} justifyContent="center" sx={{ mt: 2 }}>
               {currentIndex > 0 && (
@@ -181,7 +169,7 @@ function MovieDetail() {
                   startIcon={<SkipPreviousIcon />}
                   onClick={() => handleSelectEpisode(episodeList[currentIndex - 1])}
                 >
-                  Tập {episodeList[currentIndex - 1].name}
+                  {episodeList[currentIndex - 1].name}
                 </Button>
               )}
               {currentIndex < episodeList.length - 1 && (
@@ -191,7 +179,7 @@ function MovieDetail() {
                   endIcon={<SkipNextIcon />}
                   onClick={() => handleSelectEpisode(episodeList[currentIndex + 1])}
                 >
-                  Tập {episodeList[currentIndex + 1].name}
+                  {episodeList[currentIndex + 1].name}
                 </Button>
               )}
             </Stack>
@@ -219,7 +207,6 @@ function MovieDetail() {
 
             <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ zIndex: 1 }}>
               {resumeData ? (
-                /* HIỂN THỊ KHI ĐÃ CÓ LỊCH SỬ */
                 <Button
                   variant="contained"
                   size="large"
@@ -231,10 +218,9 @@ function MovieDetail() {
                     handleSelectEpisode(epToResume, resumeData.currentTime);
                   }}
                 >
-                  XEM TIẾP TẬP {resumeData.episode}
+                  TIẾP TỤC XEM {resumeData.episode.toUpperCase()}
                 </Button>
               ) : (
-                /* HIỂN THỊ KHI CHƯA CÓ LỊCH SỬ */
                 <Button
                   variant="contained"
                   size="large"
@@ -254,15 +240,45 @@ function MovieDetail() {
       {movie && (
         <Box sx={{ mt: 3 }}>
           <Typography variant="h4" fontWeight="bold">{movie.name}</Typography>
-          <Typography color="text.secondary" variant="h6">
+          <Typography color="text.secondary" variant="h6" gutterBottom>
             {movie.origin_name} ({movie.year})
           </Typography>
 
-          <Stack direction="row" spacing={1} mt={1} mb={2}>
-            <Chip label={movie.quality} color="primary" variant="outlined" size="small" />
+          {/* Chips trạng thái nhanh */}
+          <Stack direction="row" spacing={1} mt={1} mb={2} flexWrap="wrap">
+            <Chip label={movie.quality} color="primary" variant="contained" size="small" />
             <Chip label={movie.lang} variant="outlined" size="small" />
             <Chip label={movie.time} variant="outlined" size="small" />
+            <Chip label={movie.episode_current} color="error" variant="outlined" size="small" />
           </Stack>
+
+          {/* Bảng thông tin chi tiết phim */}
+          <Box sx={{ bgcolor: "rgba(255,255,255,0.05)", p: 2, borderRadius: 2, mb: 3 }}>
+            <Grid container spacing={1}>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="body2"><strong>Đạo diễn:</strong> {movie.director?.join(", ") || "Đang cập nhật"}</Typography>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="body2"><strong>Quốc gia:</strong> {movie.country?.map(c => c.name).join(", ")}</Typography>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="body2"><strong>Thể loại:</strong> {movie.category?.map(c => c.name).join(", ")}</Typography>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="body2"><strong>Thời lượng:</strong> {movie.time}</Typography>
+              </Grid>
+              <Grid item xs={12}>
+                <Typography variant="body2" sx={{ 
+                  display: '-webkit-box', 
+                  WebkitLineClamp: 2, 
+                  WebkitBoxOrient: 'vertical', 
+                  overflow: 'hidden' 
+                }}>
+                  <strong>Diễn viên:</strong> {movie.actor?.join(", ") || "Đang cập nhật"}
+                </Typography>
+              </Grid>
+            </Grid>
+          </Box>
 
           <Typography variant="body1" sx={{ lineHeight: 1.7, color: "text.primary", opacity: 0.8 }}>
             {movie.content?.replace(/<[^>]*>/g, "")}
@@ -270,7 +286,9 @@ function MovieDetail() {
         </Box>
       )}
 
-      <Typography sx={{ mt: 4 }} variant="h6" fontWeight="bold">Chọn Nguồn Phát (Server)</Typography>
+      <Divider sx={{ my: 3 }} />
+
+      <Typography sx={{ mt: 2 }} variant="h6" fontWeight="bold">Chọn Nguồn Phát (Server)</Typography>
       <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mt: 1 }}>
         {servers.map((sv, i) => (
           <Button
@@ -285,7 +303,7 @@ function MovieDetail() {
       </Box>
 
       <Typography sx={{ mt: 3 }} variant="h6" fontWeight="bold">Danh sách tập</Typography>
-      <Box sx={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(90px, 1fr))", gap: 1, mt: 1 }}>
+      <Box sx={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(100px, 1fr))", gap: 1, mt: 1 }}>
         {episodeList.map((ep, i) => (
           <Button
             key={i}
