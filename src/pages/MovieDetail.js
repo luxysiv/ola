@@ -120,8 +120,8 @@ function MovieDetail() {
         <Helmet>
           <title>
             {currentEp
-              ? `${currentEp} - ${movie.name}`
-              : `${movie.name} (${movie.year})`}
+              ? `${currentEp} - ${movie.name} | KKPhim`
+              : `${movie.name} (${movie.year}) | KKPhim`}
           </title>
         </Helmet>
       )}
@@ -161,6 +161,7 @@ function MovieDetail() {
             }}
           />
 
+          {/* Điều hướng tập (Đã bỏ từ Tập dư thừa) */}
           {episodeList.length > 1 && (
             <Stack direction="row" spacing={2} justifyContent="center" sx={{ mt: 2 }}>
               {currentIndex > 0 && (
@@ -244,38 +245,31 @@ function MovieDetail() {
             {movie.origin_name} ({movie.year})
           </Typography>
 
-          {/* Chips trạng thái nhanh */}
+          {/* Chips trạng thái */}
           <Stack direction="row" spacing={1} mt={1} mb={2} flexWrap="wrap">
             <Chip label={movie.quality} color="primary" variant="contained" size="small" />
             <Chip label={movie.lang} variant="outlined" size="small" />
             <Chip label={movie.time} variant="outlined" size="small" />
-            <Chip label={movie.episode_current} color="error" variant="outlined" size="small" />
+            {movie.episode_current && <Chip label={movie.episode_current} color="success" variant="outlined" size="small" />}
           </Stack>
 
-          {/* Bảng thông tin chi tiết phim */}
-          <Box sx={{ bgcolor: "rgba(255,255,255,0.05)", p: 2, borderRadius: 2, mb: 3 }}>
-            <Grid container spacing={1}>
+          {/* Phần thông tin bổ sung */}
+          <Box sx={{ bgcolor: "background.paper", p: 2, borderRadius: 2, mb: 3, border: "1px solid rgba(255,255,255,0.1)" }}>
+            <Grid container spacing={2}>
               <Grid item xs={12} sm={6}>
                 <Typography variant="body2"><strong>Đạo diễn:</strong> {movie.director?.join(", ") || "Đang cập nhật"}</Typography>
               </Grid>
               <Grid item xs={12} sm={6}>
-                <Typography variant="body2"><strong>Quốc gia:</strong> {movie.country?.map(c => c.name).join(", ")}</Typography>
+                <Typography variant="body2"><strong>Quốc gia:</strong> {movie.country?.map(c => c.name).join(", ") || "Đang cập nhật"}</Typography>
               </Grid>
               <Grid item xs={12} sm={6}>
-                <Typography variant="body2"><strong>Thể loại:</strong> {movie.category?.map(c => c.name).join(", ")}</Typography>
+                <Typography variant="body2"><strong>Thể loại:</strong> {movie.category?.map(c => c.name).join(", ") || "Đang cập nhật"}</Typography>
               </Grid>
               <Grid item xs={12} sm={6}>
                 <Typography variant="body2"><strong>Thời lượng:</strong> {movie.time}</Typography>
               </Grid>
               <Grid item xs={12}>
-                <Typography variant="body2" sx={{ 
-                  display: '-webkit-box', 
-                  WebkitLineClamp: 2, 
-                  WebkitBoxOrient: 'vertical', 
-                  overflow: 'hidden' 
-                }}>
-                  <strong>Diễn viên:</strong> {movie.actor?.join(", ") || "Đang cập nhật"}
-                </Typography>
+                <Typography variant="body2"><strong>Diễn viên:</strong> {movie.actor?.join(", ") || "Đang cập nhật"}</Typography>
               </Grid>
             </Grid>
           </Box>
@@ -286,9 +280,9 @@ function MovieDetail() {
         </Box>
       )}
 
-      <Divider sx={{ my: 3 }} />
+      <Divider sx={{ my: 4 }} />
 
-      <Typography sx={{ mt: 2 }} variant="h6" fontWeight="bold">Chọn Nguồn Phát (Server)</Typography>
+      <Typography variant="h6" fontWeight="bold">Chọn Nguồn Phát (Server)</Typography>
       <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mt: 1 }}>
         {servers.map((sv, i) => (
           <Button
