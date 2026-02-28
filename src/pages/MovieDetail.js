@@ -64,7 +64,13 @@ function MovieDetail() {
               setSrc(listEp[epIdx].link_m3u8);
               setCurrentEp(listEp[epIdx].name);
             }
+          } else {
+            setSrc(null);
+            setCurrentEp(null);
           }
+        } else {
+          setSrc(null);
+          setCurrentEp(null);
         }
       })
       .catch(console.error)
@@ -84,7 +90,10 @@ function MovieDetail() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [servers, currentServer, slug, navigate]);
 
+  // SỬA LẠI: Hàm quay về giao diện Banner
   const handleBackToBanner = () => {
+    setSrc(null);
+    setCurrentEp(null);
     navigate(`/phim/${slug}`);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -161,30 +170,25 @@ function MovieDetail() {
             }}
           />
 
-          {/* Điều hướng tập (Đã bỏ từ Tập dư thừa) */}
-          {episodeList.length > 1 && (
-            <Stack direction="row" spacing={2} justifyContent="center" sx={{ mt: 2 }}>
-              {currentIndex > 0 && (
-                <Button
-                  variant="outlined"
-                  startIcon={<SkipPreviousIcon />}
-                  onClick={() => handleSelectEpisode(episodeList[currentIndex - 1])}
-                >
-                  {episodeList[currentIndex - 1].name}
-                </Button>
-              )}
-              {currentIndex < episodeList.length - 1 && (
-                <Button
-                  variant="contained"
-                  color="error"
-                  endIcon={<SkipNextIcon />}
-                  onClick={() => handleSelectEpisode(episodeList[currentIndex + 1])}
-                >
-                  {episodeList[currentIndex + 1].name}
-                </Button>
-              )}
-            </Stack>
-          )}
+          <Stack direction="row" spacing={2} justifyContent="center" sx={{ mt: 2 }}>
+            {currentIndex > 0 && (
+              <Button
+                variant="outlined"
+                onClick={() => handleSelectEpisode(episodeList[currentIndex - 1])}
+              >
+                {episodeList[currentIndex - 1].name}
+              </Button>
+            )}
+            {currentIndex < episodeList.length - 1 && (
+              <Button
+                variant="contained"
+                color="error"
+                onClick={() => handleSelectEpisode(episodeList[currentIndex + 1])}
+              >
+                {episodeList[currentIndex + 1].name}
+              </Button>
+            )}
+          </Stack>
         </>
       ) : (
         banner && (
@@ -245,7 +249,6 @@ function MovieDetail() {
             {movie.origin_name} ({movie.year})
           </Typography>
 
-          {/* Chips trạng thái */}
           <Stack direction="row" spacing={1} mt={1} mb={2} flexWrap="wrap">
             <Chip label={movie.quality} color="primary" variant="contained" size="small" />
             <Chip label={movie.lang} variant="outlined" size="small" />
@@ -253,7 +256,7 @@ function MovieDetail() {
             {movie.episode_current && <Chip label={movie.episode_current} color="success" variant="outlined" size="small" />}
           </Stack>
 
-          {/* Phần thông tin bổ sung */}
+          {/* Bảng thông tin bổ sung */}
           <Box sx={{ bgcolor: "background.paper", p: 2, borderRadius: 2, mb: 3, border: "1px solid rgba(255,255,255,0.1)" }}>
             <Grid container spacing={2}>
               <Grid item xs={12} sm={6}>
