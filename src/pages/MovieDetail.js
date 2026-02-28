@@ -1,10 +1,13 @@
 import React, { useEffect, useState, useCallback } from "react";
 import axios from "axios";
-import { useParams, useNavigate, useLocation } from "react-router-dom";
+import { useParams, useNavigate, useLocation, Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import VideoPlayer from "../components/VideoPlayer";
 import { getHistory } from "../utils/history";
-import { Container, Typography, Button, Box, Chip, Stack, CircularProgress, Grid, Divider } from "@mui/material";
+import { 
+  Container, Typography, Button, Box, Chip, 
+  Stack, CircularProgress, Grid, Divider 
+} from "@mui/material";
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import SkipNextIcon from '@mui/icons-material/SkipNext';
 import SkipPreviousIcon from '@mui/icons-material/SkipPrevious';
@@ -64,13 +67,7 @@ function MovieDetail() {
               setSrc(listEp[epIdx].link_m3u8);
               setCurrentEp(listEp[epIdx].name);
             }
-          } else {
-            setSrc(null);
-            setCurrentEp(null);
           }
-        } else {
-          setSrc(null);
-          setCurrentEp(null);
         }
       })
       .catch(console.error)
@@ -90,7 +87,6 @@ function MovieDetail() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [servers, currentServer, slug, navigate]);
 
-  // SỬA LẠI: Hàm quay về giao diện Banner
   const handleBackToBanner = () => {
     setSrc(null);
     setCurrentEp(null);
@@ -170,25 +166,29 @@ function MovieDetail() {
             }}
           />
 
-          <Stack direction="row" spacing={2} justifyContent="center" sx={{ mt: 2 }}>
-            {currentIndex > 0 && (
-              <Button
-                variant="outlined"
-                onClick={() => handleSelectEpisode(episodeList[currentIndex - 1])}
-              >
-                {episodeList[currentIndex - 1].name}
-              </Button>
-            )}
-            {currentIndex < episodeList.length - 1 && (
-              <Button
-                variant="contained"
-                color="error"
-                onClick={() => handleSelectEpisode(episodeList[currentIndex + 1])}
-              >
-                {episodeList[currentIndex + 1].name}
-              </Button>
-            )}
-          </Stack>
+          {episodeList.length > 1 && (
+            <Stack direction="row" spacing={2} justifyContent="center" sx={{ mt: 2 }}>
+              {currentIndex > 0 && (
+                <Button
+                  variant="outlined"
+                  startIcon={<SkipPreviousIcon />}
+                  onClick={() => handleSelectEpisode(episodeList[currentIndex - 1])}
+                >
+                  {episodeList[currentIndex - 1].name}
+                </Button>
+              )}
+              {currentIndex < episodeList.length - 1 && (
+                <Button
+                  variant="contained"
+                  color="error"
+                  endIcon={<SkipNextIcon />}
+                  onClick={() => handleSelectEpisode(episodeList[currentIndex + 1])}
+                >
+                  {episodeList[currentIndex + 1].name}
+                </Button>
+              )}
+            </Stack>
+          )}
         </>
       ) : (
         banner && (
@@ -249,28 +249,59 @@ function MovieDetail() {
             {movie.origin_name} ({movie.year})
           </Typography>
 
-          <Stack direction="row" spacing={1} mt={1} mb={2} flexWrap="wrap">
+          <Stack direction="row" spacing={1} mt={1} mb={2} flexWrap="wrap" useFlexGap>
             <Chip label={movie.quality} color="primary" variant="contained" size="small" />
             <Chip label={movie.lang} variant="outlined" size="small" />
             <Chip label={movie.time} variant="outlined" size="small" />
             {movie.episode_current && <Chip label={movie.episode_current} color="success" variant="outlined" size="small" />}
           </Stack>
 
-          {/* Bảng thông tin bổ sung */}
+          {/* Bảng thông tin bổ sung có click trang quốc gia và thể loại */}
           <Box sx={{ bgcolor: "background.paper", p: 2, borderRadius: 2, mb: 3, border: "1px solid rgba(255,255,255,0.1)" }}>
             <Grid container spacing={2}>
               <Grid item xs={12} sm={6}>
                 <Typography variant="body2"><strong>Đạo diễn:</strong> {movie.director?.join(", ") || "Đang cập nhật"}</Typography>
               </Grid>
+
               <Grid item xs={12} sm={6}>
-                <Typography variant="body2"><strong>Quốc gia:</strong> {movie.country?.map(c => c.name).join(", ") || "Đang cập nhật"}</Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 0.5 }}>
+                  <Typography variant="body2"><strong>Quốc gia:</strong></Typography>
+                  {movie.country?.map((c) => (
+                    <Chip
+                      key={c.id}
+                      label={c.name}
+                      size="small"
+                      clickable
+                      component={Link}
+                      to={`/quoc-gia/${c.slug}`}
+                      sx={{ fontSize: '0.75rem', height: '20px', cursor: 'pointer' }}
+                    />
+                  ))}
+                </Box>
               </Grid>
+
               <Grid item xs={12} sm={6}>
-                <Typography variant="body2"><strong>Thể loại:</strong> {movie.category?.map(c => c.name).join(", ") || "Đang cập nhật"}</Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 0.5 }}>
+                  <Typography variant="body2"><strong>Thể loại:</strong></Typography>
+                  {movie.category?.map((cat) => (
+                    <Chip
+                      key={cat.id}
+                      label={cat.name}
+                      size="small"
+                      variant="outlined"
+                      clickable
+                      component={Link}
+                      to={`/the-loai/${cat.slug}`}
+                      sx={{ fontSize: '0.75rem', height: '20px', cursor: 'pointer' }}
+                    />
+                  ))}
+                </Box>
               </Grid>
+
               <Grid item xs={12} sm={6}>
                 <Typography variant="body2"><strong>Thời lượng:</strong> {movie.time}</Typography>
               </Grid>
+
               <Grid item xs={12}>
                 <Typography variant="body2"><strong>Diễn viên:</strong> {movie.actor?.join(", ") || "Đang cập nhật"}</Typography>
               </Grid>
