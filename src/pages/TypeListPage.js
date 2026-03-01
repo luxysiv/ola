@@ -72,7 +72,7 @@ function TypeListPage() {
   return (
     <Container sx={{ mt: 3, mb: 5 }}>
       <Helmet>
-        <title>{`${seoData.titlePage || 'Danh sách'} - Trang ${currentPage} | KKPhim`}</title>
+        <title>{`${seoData.titlePage || 'Danh sách'} - Trang ${currentPage}`}</title>
         <meta name="description" content={seoData.descriptionHead} />
       </Helmet>
 
