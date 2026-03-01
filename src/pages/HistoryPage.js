@@ -63,7 +63,7 @@ function HistoryPage() {
   return (
     <Container sx={{ mt: 3, mb: 5 }}>
       <Helmet>
-        <title>Lịch sử xem phim | KKPhim</title>
+        <title>Lịch sử xem phim</title>
       </Helmet>
 
       <Box display="flex" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
