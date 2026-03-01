@@ -78,7 +78,7 @@ function CountryPage() {
     <Container sx={{ mt: 3, mb: 5 }}>
       <Helmet>
         {/* Tiêu đề hiển thị chuẩn SEO kèm số trang */}
-        <title>{`${seoData.titlePage || 'Quốc gia'} - Trang ${currentPage} | KKPhim`}</title>
+        <title>{`${seoData.titlePage || 'Quốc gia'} - Trang ${currentPage}`}</title>
         <meta name="description" content={seoData.descriptionHead} />
       </Helmet>
 
