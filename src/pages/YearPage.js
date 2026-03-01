@@ -72,7 +72,7 @@ function YearPage() {
   return (
     <Container sx={{ mt: 3, mb: 5 }}>
       <Helmet>
-        <title>{`${seoData.titlePage || 'Năm ' + year} - Trang ${currentPage} | KKPhim`}</title>
+        <title>{`${seoData.titlePage || 'Năm ' + year} - Trang ${currentPage}`}</title>
         <meta name="description" content={seoData.descriptionHead} />
       </Helmet>
 
