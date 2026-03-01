@@ -76,7 +76,7 @@ function CategoryPage() {
     <Container sx={{ mt: 3, mb: 5 }}>
       <Helmet>
         {/* Tiêu đề sẽ hiển thị: "Phim Hành Động | Trang 2 | KKPhim" */}
-        <title>{`${seoData.titlePage || 'Thể loại'} - Trang ${currentPage} | KKPhim`}</title>
+        <title>{`${seoData.titlePage || 'Thể loại'} - Trang ${currentPage}`}</title>
         <meta name="description" content={seoData.descriptionHead} />
       </Helmet>
 
