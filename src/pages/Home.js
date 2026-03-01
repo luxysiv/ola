@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { Link } from "react-router-dom";
-import { Helmet } from "react-helmet-async"; // Thêm Helmet
+import { Helmet } from "react-helmet-async";
 import {
   Container,
   Typography,
@@ -235,7 +235,7 @@ function Home() {
     <Container maxWidth="lg" sx={{ mt: 5, mb: 5 }}>
       {/* Tích hợp Helmet cho trang chủ */}
       <Helmet>
-        <title>KKPhim - Xem phim trực tuyến miễn phí Full HD</title>
+        <title>Hdophim - Xem phim trực tuyến miễn phí Full HD</title>
         <meta name="description" content="Trang chủ KKPhim, cập nhật phim mới nhất, phim hành động, phim bộ, phim lẻ chất lượng cao Vietsub." />
       </Helmet>
 
