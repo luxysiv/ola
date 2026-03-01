@@ -100,7 +100,7 @@ function Search() {
   return (
     <Container sx={{ mt: 4, mb: 5 }}>
       <Helmet>
-        <title>{`${seoTitle} ${currentPage > 1 ? `- Trang ${currentPage}` : ""} | KKPhim`}</title>
+        <title>{`${seoTitle} ${currentPage > 1 ? `- Trang ${currentPage}` : ""}`}</title>
       </Helmet>
 
       <Box display="flex" gap={1} justifyContent="center" mb={4}>
