@@ -61,7 +61,7 @@ function LatestPage() {
   return (
     <Container sx={{ mt: 3, mb: 5 }}>
       <Helmet>
-        <title>{`Phim Mới Cập Nhật - Trang ${currentPage} | KKPhim`}</title>
+        <title>{`Phim Mới Cập Nhật - Trang ${currentPage}`}</title>
         <meta name="description" content="Danh sách phim mới cập nhật bản đẹp, vietsub nhanh nhất." />
       </Helmet>
 
