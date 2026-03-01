@@ -125,8 +125,8 @@ function MovieDetail() {
         <Helmet>
           <title>
             {currentEp
-              ? `${currentEp} - ${movie.name} | KKPhim`
-              : `${movie.name} (${movie.year}) | KKPhim`}
+              ? `${currentEp} - ${movie.name}`
+              : `${movie.name} (${movie.year})`}
           </title>
         </Helmet>
       )}
