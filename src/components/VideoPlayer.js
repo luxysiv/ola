@@ -19,12 +19,10 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
   const [progress, setProgress] = useState(0);
   const [showToolbar, setShowToolbar] = useState(true);
   
-  // States cho hiệu ứng
   const [feedback, setFeedback] = useState({ visible: false, type: "", side: "" });
   const [seekAccumulator, setSeekAccumulator] = useState(0); 
   const [indicatorValue, setIndicatorValue] = useState("");
 
-  // Tự động ẩn Toolbar
   const autoHideToolbar = () => {
     setShowToolbar(true);
     clearTimeout(window.hideTimer);
@@ -43,27 +41,27 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
     autoHideToolbar();
   };
 
-  // --- XỬ LÝ CỬ CHỈ VỚI @USE-GESTURE ---
   const bind = useGesture({
     onTap: ({ event, tapCount, xy: [x, y] }) => {
       const rect = containerRef.current.getBoundingClientRect();
-      const isRight = (x - rect.left) > rect.width / 2;
+      const relativeX = x - rect.left;
+      const isRightSide = relativeX > rect.width / 2;
 
+      // 1 Tap: Ẩn/hiện control center (Chỉ nhận diện ở vùng giữa, không sát mép)
       if (tapCount === 1) {
-        // 1 tap: Chỉ hiện/ẩn bảng điều khiển
-        setShowToolbar((prev) => !prev);
+        setShowToolbar(!showToolbar);
         if (!showToolbar) autoHideToolbar();
       } 
+      // Multi-tap: Tua phim (Chỉ nhận diện khi tap nhanh ở 2 bên)
       else if (tapCount >= 2) {
-        // Double tap trở lên: Tua 10s mỗi lần tap
-        const direction = isRight ? 1 : -1;
+        const direction = isRightSide ? 1 : -1;
         videoRef.current.currentTime += direction * 10;
         
         setSeekAccumulator(prev => prev + 10);
         setFeedback({ 
           visible: true, 
-          type: isRight ? "forward" : "rewind", 
-          side: isRight ? "right" : "left" 
+          type: isRightSide ? "forward" : "rewind", 
+          side: isRightSide ? "right" : "left" 
         });
 
         clearTimeout(window.seekTimer);
@@ -73,14 +71,19 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
         }, 800);
       }
     },
-    onDrag: ({ active, movement: [, my], initial: [ix], last }) => {
+    onDrag: ({ active, movement: [mx, my], initial: [ix], last, direction: [xDir, yDir] }) => {
       const rect = containerRef.current.getBoundingClientRect();
-      const isLeft = (ix - rect.left) < rect.width / 2;
+      const relativeIx = ix - rect.left;
       
-      if (active) {
-        const delta = -my * 0.005; 
+      // Giới hạn vùng trượt: Chỉ hiệu lực nếu bắt đầu vuốt ở 15% mép trái hoặc 15% mép phải
+      const isLeftEdge = relativeIx < rect.width * 0.15;
+      const isRightEdge = relativeIx > rect.width * 0.85;
 
-        if (isLeft) {
+      // Chỉ xử lý nếu vuốt theo chiều dọc (y) và ở vùng mép
+      if (active && Math.abs(yDir) > Math.abs(xDir) && (isLeftEdge || isRightEdge)) {
+        const delta = -my * 0.002; // Giảm độ nhạy để trượt mượt hơn
+
+        if (isLeftEdge) {
           const currentBr = parseFloat(videoRef.current.style.filter?.replace("brightness(", "") || 1);
           const newBr = Math.min(2, Math.max(0.4, currentBr + delta));
           videoRef.current.style.filter = `brightness(${newBr})`;
@@ -93,6 +96,7 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
           setFeedback({ visible: true, type: "volume", side: "right-top" });
         }
       }
+
       if (last) {
         setTimeout(() => setFeedback(f => ({ ...f, visible: false })), 500);
       }
@@ -102,7 +106,6 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
     tap: { threshold: 20 }
   });
 
-  // --- LOGIC HLS ---
   useEffect(() => {
     if (!videoRef.current || !src) return;
     const video = videoRef.current;
@@ -128,104 +131,74 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
         aspectRatio: "16/9", touchAction: "none", overflow: "hidden", borderRadius: 2 
       }}
     >
-      <video 
-        ref={videoRef} 
-        autoPlay 
-        style={{ width: "100%", height: "100%", objectFit: "contain", transition: "filter 0.1s" }} 
-      />
+      <video ref={videoRef} autoPlay style={{ width: "100%", height: "100%", objectFit: "contain", transition: "filter 0.1s" }} />
 
-      {/* 1. NÚT PLAY/PAUSE TRUNG TÂM */}
+      {/* Control Center - Nút Play trung tâm */}
       <AnimatePresence>
         {showToolbar && (
           <motion.div
-            initial={{ opacity: 0, scale: 0.5 }}
+            initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.5 }}
+            exit={{ opacity: 0, scale: 0.8 }}
             style={{ position: "absolute", top: "50%", left: "50%", x: "-50%", y: "-50%", zIndex: 10 }}
           >
-            <IconButton onClick={togglePlay} sx={{ bgcolor: "rgba(0,0,0,0.5)", p: 4, color: "white", "&:hover": {bgcolor: "rgba(0,0,0,0.7)"} }}>
-              {isPlaying ? <Pause sx={{ fontSize: 80 }} /> : <PlayArrow sx={{ fontSize: 80 }} />}
+            <IconButton onClick={togglePlay} sx={{ bgcolor: "rgba(0,0,0,0.5)", p: 4, color: "white" }}>
+              {isPlaying ? <Pause sx={{ fontSize: 70 }} /> : <PlayArrow sx={{ fontSize: 70 }} />}
             </IconButton>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* 2. HIỆU ỨNG SÓNG ÂM TUA PHIM */}
+      {/* Hiệu ứng tua phim */}
       <AnimatePresence>
         {feedback.visible && (feedback.type === "forward" || feedback.type === "rewind") && (
           <motion.div
-            key={seekAccumulator} 
+            key={seekAccumulator}
             initial={{ opacity: 1, scale: 0.8 }}
-            animate={{ opacity: 0, scale: 1.5 }}
+            animate={{ opacity: 0, scale: 1.4 }}
             style={{
               position: "absolute", top: "50%",
               left: feedback.side === "left" ? "25%" : "75%",
-              x: "-50%", y: "-50%",
-              width: 160, height: 160, borderRadius: "50%",
-              backgroundColor: "rgba(255,255,255,0.15)",
-              display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-              zIndex: 5, pointerEvents: "none", color: "white"
+              x: "-50%", y: "-50%", zIndex: 5, color: "white", textAlign: "center"
             }}
           >
-            {feedback.type === "forward" ? <FastForward fontSize="large" /> : <FastRewind fontSize="large" />}
-            <Typography variant="h5" fontWeight="bold">+{seekAccumulator}s</Typography>
+            {feedback.type === "forward" ? <FastForward sx={{fontSize: 60}} /> : <FastRewind sx={{fontSize: 60}} />}
+            <Typography variant="h5">+{seekAccumulator}s</Typography>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* 3. INDICATOR ĐỘ SÁNG / ÂM THANH */}
+      {/* Indicator Độ sáng/Âm lượng (Sát mép) */}
       <AnimatePresence>
         {feedback.visible && (feedback.type === "brightness" || feedback.type === "volume") && (
           <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0, x: feedback.type === "brightness" ? -20 : 20 }}
+            animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0 }}
             style={{
-              position: "absolute", top: "10%",
-              left: feedback.side === "left-top" ? "10%" : "90%",
-              x: "-50%",
-              backgroundColor: "rgba(0,0,0,0.8)", padding: "12px 20px",
-              borderRadius: "12px", color: "white", zIndex: 12,
-              display: "flex", flexDirection: "column", alignItems: "center",
-              border: "1px solid rgba(255,255,255,0.2)", backdropFilter: "blur(8px)"
+              position: "absolute", top: "20%",
+              left: feedback.type === "brightness" ? "5%" : "95%",
+              x: "-50%", zIndex: 12,
+              backgroundColor: "rgba(0,0,0,0.7)", padding: "10px", borderRadius: "10px", color: "white"
             }}
           >
             {feedback.type === "brightness" ? <Brightness6 /> : <VolumeUp />}
-            <Typography variant="h6" sx={{ mt: 0.5 }}>{indicatorValue}</Typography>
+            <Typography variant="caption" display="block">{indicatorValue}</Typography>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* 4. THANH TOOLBAR */}
+      {/* Bottom Toolbar */}
       <AnimatePresence>
         {showToolbar && (
           <motion.div
-            initial={{ y: 100 }}
-            animate={{ y: 0 }}
-            exit={{ y: 100 }}
-            style={{
-              position: "absolute", bottom: 0, left: 0, right: 0,
-              background: "linear-gradient(transparent, rgba(0,0,0,0.95))",
-              padding: "20px", zIndex: 11
-            }}
+            initial={{ y: 50 }} animate={{ y: 0 }} exit={{ y: 50 }}
+            style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "linear-gradient(transparent, rgba(0,0,0,0.9))", padding: "15px", zIndex: 11 }}
           >
-            <Typography variant="subtitle1" sx={{ color: "white", mb: 1, fontWeight: 500 }}>{title}</Typography>
-            
-            <LinearProgress 
-              variant="determinate" value={progress} 
-              sx={{ height: 6, mb: 2, borderRadius: 3, bgcolor: "rgba(255,255,255,0.2)", "& .MuiLinearProgress-bar": { bgcolor: "#ff0000" } }} 
-            />
-
+            <LinearProgress variant="determinate" value={progress} sx={{ height: 4, mb: 1, bgcolor: "rgba(255,255,255,0.2)", "& .MuiLinearProgress-bar": { bgcolor: "red" } }} />
             <Stack direction="row" justifyContent="space-between" alignItems="center">
-              <Stack direction="row" spacing={1}>
-                <IconButton color="inherit" onClick={onVideoEnd} sx={{ color: "white" }}>
-                  <SkipNext fontSize="large" />
-                </IconButton>
-              </Stack>
-
-              <IconButton color="inherit" onClick={() => containerRef.current.requestFullscreen()} sx={{ color: "white" }}>
-                <Fullscreen fontSize="large" />
-              </IconButton>
+              <Typography variant="body2" color="white">{title}</Typography>
+              <IconButton size="small" sx={{color: "white"}} onClick={() => containerRef.current.requestFullscreen()}><Fullscreen /></IconButton>
             </Stack>
           </motion.div>
         )}
