@@ -18,8 +18,9 @@
     "react-router-dom": "^7.13.0",
     "react-scripts": "5.0.1",
     "react-slick": "^0.31.0",
-    "videojs-vtt-thumbnails": "^0.0.13",
     "video.js": "^8.23.7",
+    "videojs-mobile-ui": "^1.2.2",
+    "videojs-vtt-thumbnails": "^0.0.13",
     "swiper": "^12.1.0"
   },
   "scripts": {
