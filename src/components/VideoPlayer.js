@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState, useCallback } from "react";
 import Hls from "hls.js";
-import { Card, Box, Typography, Slider, IconButton } from "@mui/material";
+import { Card, Box, Typography, Slider, IconButton, Stack } from "@mui/material";
 import { useGesture } from "@use-gesture/react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
