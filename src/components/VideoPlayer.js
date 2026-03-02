@@ -1,209 +1,547 @@
-import React, { useRef, useEffect, useState } from "react";
+import React, { useRef, useEffect, useState, useCallback } from "react";
 import Hls from "hls.js";
+import { Card, Box, Typography, Slider, IconButton } from "@mui/material";
+import { saveHistoryItem } from "../utils/history";
 import { useGesture } from "@use-gesture/react";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
-  Box, Typography, IconButton, LinearProgress, Stack 
-} from "@mui/material";
-import { 
-  FastForward, FastRewind, Brightness6, VolumeUp, 
-  PlayArrow, Pause, Fullscreen, SkipNext 
+import {
+  BrightnessHigh,
+  BrightnessLow,
+  VolumeUp,
+  VolumeDown,
+  VolumeOff,
+  Forward10,
+  Replay10
 } from "@mui/icons-material";
 
 const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
   const videoRef = useRef(null);
   const containerRef = useRef(null);
   const hlsRef = useRef(null);
+  const hasResumed = useRef(false);
   
-  const [isPlaying, setIsPlaying] = useState(true);
-  const [progress, setProgress] = useState(0);
-  const [showToolbar, setShowToolbar] = useState(true);
-  
-  const [feedback, setFeedback] = useState({ visible: false, type: "", side: "" });
-  const [seekAccumulator, setSeekAccumulator] = useState(0); 
-  const [indicatorValue, setIndicatorValue] = useState("");
+  // State cho UI
+  const [showControls, setShowControls] = useState(false);
+  const [brightness, setBrightness] = useState(100);
+  const [volume, setVolume] = useState(1);
+  const [prevVolume, setPrevVolume] = useState(1);
+  const [showSeekIndicator, setShowSeekIndicator] = useState(false);
+  const [seekDirection, setSeekDirection] = useState(null);
+  const [showVolumeIndicator, setShowVolumeIndicator] = useState(false);
+  const [showBrightnessIndicator, setShowBrightnessIndicator] = useState(false);
+  const [waveformBars, setWaveformBars] = useState([]);
+  const [isMuted, setIsMuted] = useState(false);
 
-  const autoHideToolbar = () => {
-    setShowToolbar(true);
-    clearTimeout(window.hideTimer);
-    window.hideTimer = setTimeout(() => setShowToolbar(false), 3000);
-  };
-
-  const togglePlay = (e) => {
-    if (e) e.stopPropagation();
-    if (videoRef.current.paused) {
-      videoRef.current.play();
-      setIsPlaying(true);
-    } else {
-      videoRef.current.pause();
-      setIsPlaying(false);
+  // Tạo waveform animation khi double tap
+  const generateWaveform = useCallback(() => {
+    const bars = [];
+    for (let i = 0; i < 20; i++) {
+      bars.push({
+        id: i,
+        height: Math.random() * 40 + 10,
+        delay: i * 0.02,
+      });
     }
-    autoHideToolbar();
+    setWaveformBars(bars);
+    setTimeout(() => setWaveformBars([]), 800);
+  }, []);
+
+  // Xử lý double tap để tua
+  const handleDoubleTap = (direction) => {
+    if (!videoRef.current) return;
+    
+    const video = videoRef.current;
+    const seekTime = direction === 'forward' ? 10 : -10;
+    video.currentTime = Math.max(0, Math.min(video.duration, video.currentTime + seekTime));
+    
+    setSeekDirection(direction);
+    setShowSeekIndicator(true);
+    generateWaveform();
+    setTimeout(() => setShowSeekIndicator(false), 800);
   };
 
-  const bind = useGesture({
-    onTap: ({ event, tapCount, xy: [x, y] }) => {
-      const rect = containerRef.current.getBoundingClientRect();
-      const relativeX = x - rect.left;
-      const isRightSide = relativeX > rect.width / 2;
+  // Xử lý kéo để điều chỉnh brightness/volume
+  const bindGestures = useGesture(
+    {
+      onDrag: ({ movement: [mx, my], first, last, event }) => {
+        event.preventDefault();
+        const { clientX, clientY } = event;
+        const container = containerRef.current;
+        if (!container) return;
 
-      // 1 Tap: Ẩn/hiện control center (Chỉ nhận diện ở vùng giữa, không sát mép)
-      if (tapCount === 1) {
-        setShowToolbar(!showToolbar);
-        if (!showToolbar) autoHideToolbar();
-      } 
-      // Multi-tap: Tua phim (Chỉ nhận diện khi tap nhanh ở 2 bên)
-      else if (tapCount >= 2) {
-        const direction = isRightSide ? 1 : -1;
-        videoRef.current.currentTime += direction * 10;
-        
-        setSeekAccumulator(prev => prev + 10);
-        setFeedback({ 
-          visible: true, 
-          type: isRightSide ? "forward" : "rewind", 
-          side: isRightSide ? "right" : "left" 
-        });
+        const rect = container.getBoundingClientRect();
+        const relativeX = clientX - rect.left;
+        const width = rect.width;
 
-        clearTimeout(window.seekTimer);
-        window.seekTimer = setTimeout(() => {
-          setFeedback(f => ({ ...f, visible: false }));
-          setSeekAccumulator(0);
-        }, 800);
-      }
-    },
-    onDrag: ({ active, movement: [mx, my], initial: [ix], last, direction: [xDir, yDir] }) => {
-      const rect = containerRef.current.getBoundingClientRect();
-      const relativeIx = ix - rect.left;
-      
-      // Giới hạn vùng trượt: Chỉ hiệu lực nếu bắt đầu vuốt ở 15% mép trái hoặc 15% mép phải
-      const isLeftEdge = relativeIx < rect.width * 0.15;
-      const isRightEdge = relativeIx > rect.width * 0.85;
-
-      // Chỉ xử lý nếu vuốt theo chiều dọc (y) và ở vùng mép
-      if (active && Math.abs(yDir) > Math.abs(xDir) && (isLeftEdge || isRightEdge)) {
-        const delta = -my * 0.002; // Giảm độ nhạy để trượt mượt hơn
-
-        if (isLeftEdge) {
-          const currentBr = parseFloat(videoRef.current.style.filter?.replace("brightness(", "") || 1);
-          const newBr = Math.min(2, Math.max(0.4, currentBr + delta));
-          videoRef.current.style.filter = `brightness(${newBr})`;
-          setIndicatorValue(`${Math.round(newBr * 100)}%`);
-          setFeedback({ visible: true, type: "brightness", side: "left-top" });
-        } else {
-          const newVol = Math.min(1, Math.max(0, videoRef.current.volume + delta));
-          videoRef.current.volume = newVol;
-          setIndicatorValue(`${Math.round(newVol * 100)}%`);
-          setFeedback({ visible: true, type: "volume", side: "right-top" });
+        // Xác định vùng kéo (trái 20% cho brightness, phải 20% cho volume)
+        if (relativeX < width * 0.2) {
+          // Điều chỉnh brightness
+          const delta = -my / 200; // Giảm khi kéo lên
+          const newBrightness = Math.max(20, Math.min(150, brightness + delta * 50));
+          setBrightness(newBrightness);
+          setShowBrightnessIndicator(true);
+          if (last) setTimeout(() => setShowBrightnessIndicator(false), 1000);
+        } else if (relativeX > width * 0.8) {
+          // Điều chỉnh volume
+          const delta = -my / 200;
+          let newVolume = Math.max(0, Math.min(1, volume + delta));
+          setVolume(newVolume);
+          if (videoRef.current) {
+            videoRef.current.volume = newVolume;
+          }
+          setShowVolumeIndicator(true);
+          if (last) setTimeout(() => setShowVolumeIndicator(false), 1000);
         }
-      }
-
-      if (last) {
-        setTimeout(() => setFeedback(f => ({ ...f, visible: false })), 500);
+      },
+    },
+    {
+      drag: {
+        filterTaps: true,
+        axis: 'y',
+        pointer: { touch: true }
       }
     }
-  }, {
-    drag: { threshold: 10 },
-    tap: { threshold: 20 }
-  });
+  );
 
+  // Xử lý double tap bằng touch events
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    let lastTap = 0;
+    let tapTimeout;
+
+    const handleTouchEnd = (e) => {
+      const currentTime = new Date().getTime();
+      const tapLength = currentTime - lastTap;
+      
+      if (tapLength < 300 && tapLength > 0) {
+        // Double tap detected
+        e.preventDefault();
+        const touch = e.changedTouches[0];
+        const rect = video.getBoundingClientRect();
+        const touchX = touch.clientX - rect.left;
+        
+        // Xác định direction dựa trên vị trí tap (trái = lùi, phải = tiến)
+        if (touchX < rect.width / 2) {
+          handleDoubleTap('backward');
+        } else {
+          handleDoubleTap('forward');
+        }
+        
+        clearTimeout(tapTimeout);
+      }
+      
+      lastTap = currentTime;
+      
+      tapTimeout = setTimeout(() => {
+        lastTap = 0;
+      }, 300);
+    };
+
+    video.addEventListener('touchend', handleTouchEnd);
+    return () => {
+      video.removeEventListener('touchend', handleTouchEnd);
+      clearTimeout(tapTimeout);
+    };
+  }, []);
+
+  // Reset trạng thái resume khi đổi tập
+  useEffect(() => {
+    hasResumed.current = false;
+  }, [src]);
+
+  // Load video stream
   useEffect(() => {
     if (!videoRef.current || !src) return;
     const video = videoRef.current;
+    const proxiedUrl = `/proxy-stream?url=${encodeURIComponent(src)}`;
+
     if (hlsRef.current) hlsRef.current.destroy();
+
     if (Hls.isSupported()) {
       const hls = new Hls();
-      hls.loadSource(`/proxy-stream?url=${encodeURIComponent(src)}`);
+      hls.loadSource(proxiedUrl);
       hls.attachMedia(video);
       hls.on(Hls.Events.MANIFEST_PARSED, () => video.play().catch(() => {}));
       hlsRef.current = hls;
+    } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
+      video.src = proxiedUrl;
     }
-    const update = () => setProgress((video.currentTime / video.duration) * 100 || 0);
-    video.addEventListener("timeupdate", update);
-    return () => video.removeEventListener("timeupdate", update);
+
+    return () => {
+      if (hlsRef.current) hlsRef.current.destroy();
+    };
   }, [src]);
 
+  // Xử lý Resume Time
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !movieInfo?.currentTime || hasResumed.current) return;
+
+    const handleCanPlay = () => {
+      if (!hasResumed.current) {
+        video.currentTime = movieInfo.currentTime;
+        hasResumed.current = true;
+      }
+    };
+
+    video.addEventListener("loadedmetadata", handleCanPlay);
+    return () => video.removeEventListener("loadedmetadata", handleCanPlay);
+  }, [src, movieInfo?.currentTime]);
+
+  // Lưu lịch sử mỗi 5s
+  useEffect(() => {
+    if (!movieInfo) return;
+    const interval = setInterval(() => {
+      const video = videoRef.current;
+      if (video && !video.paused) {
+        saveHistoryItem({
+          ...movieInfo,
+          currentTime: video.currentTime,
+          updatedAt: Date.now()
+        });
+      }
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [movieInfo]);
+
+  // Toggle mute
+  const toggleMute = () => {
+    if (videoRef.current) {
+      if (isMuted) {
+        videoRef.current.volume = prevVolume;
+        setVolume(prevVolume);
+      } else {
+        setPrevVolume(volume);
+        videoRef.current.volume = 0;
+        setVolume(0);
+      }
+      setIsMuted(!isMuted);
+    }
+  };
+
   return (
-    <Box 
-      ref={containerRef} 
-      {...bind()} 
-      sx={{ 
-        position: "relative", width: "100%", bgcolor: "black", 
-        aspectRatio: "16/9", touchAction: "none", overflow: "hidden", borderRadius: 2 
-      }}
-    >
-      <video ref={videoRef} autoPlay style={{ width: "100%", height: "100%", objectFit: "contain", transition: "filter 0.1s" }} />
+    <Card sx={{ mt: 2, bgcolor: "#1a1a1a", color: "white" }}>
+      {title && (
+        <Box sx={{ p: 2 }}>
+          <Typography variant="h6">{title}</Typography>
+        </Box>
+      )}
+      <Box 
+        ref={containerRef}
+        sx={{ 
+          width: "100%", 
+          maxWidth: 960, 
+          margin: "0 auto", 
+          bgcolor: "black", 
+          aspectRatio: "16/9",
+          position: "relative",
+          overflow: "hidden",
+          cursor: showControls ? "auto" : "none"
+        }}
+        onMouseEnter={() => setShowControls(true)}
+        onMouseLeave={() => setShowControls(false)}
+        onMouseMove={() => setShowControls(true)}
+        {...bindGestures()}
+      >
+        <video
+          ref={videoRef}
+          controls={false}
+          autoPlay
+          onEnded={onVideoEnd}
+          style={{ 
+            width: "100%", 
+            height: "100%", 
+            objectFit: "contain",
+            filter: `brightness(${brightness}%)`
+          }}
+        />
 
-      {/* Control Center - Nút Play trung tâm */}
-      <AnimatePresence>
-        {showToolbar && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.8 }}
-            style={{ position: "absolute", top: "50%", left: "50%", x: "-50%", y: "-50%", zIndex: 10 }}
-          >
-            <IconButton onClick={togglePlay} sx={{ bgcolor: "rgba(0,0,0,0.5)", p: 4, color: "white" }}>
-              {isPlaying ? <Pause sx={{ fontSize: 70 }} /> : <PlayArrow sx={{ fontSize: 70 }} />}
-            </IconButton>
-          </motion.div>
-        )}
-      </AnimatePresence>
+        {/* Seek Indicator */}
+        <AnimatePresence>
+          {showSeekIndicator && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.5 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.5 }}
+              style={{
+                position: "absolute",
+                top: "50%",
+                left: "50%",
+                transform: "translate(-50%, -50%)",
+                background: "rgba(0,0,0,0.7)",
+                borderRadius: "50%",
+                width: 100,
+                height: 100,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "white",
+                fontSize: 24,
+                fontWeight: "bold"
+              }}
+            >
+              {seekDirection === 'forward' ? '+10' : '-10'}
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-      {/* Hiệu ứng tua phim */}
-      <AnimatePresence>
-        {feedback.visible && (feedback.type === "forward" || feedback.type === "rewind") && (
-          <motion.div
-            key={seekAccumulator}
-            initial={{ opacity: 1, scale: 0.8 }}
-            animate={{ opacity: 0, scale: 1.4 }}
-            style={{
-              position: "absolute", top: "50%",
-              left: feedback.side === "left" ? "25%" : "75%",
-              x: "-50%", y: "-50%", zIndex: 5, color: "white", textAlign: "center"
-            }}
-          >
-            {feedback.type === "forward" ? <FastForward sx={{fontSize: 60}} /> : <FastRewind sx={{fontSize: 60}} />}
-            <Typography variant="h5">+{seekAccumulator}s</Typography>
-          </motion.div>
-        )}
-      </AnimatePresence>
+        {/* Waveform Animation */}
+        <AnimatePresence>
+          {waveformBars.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              style={{
+                position: "absolute",
+                bottom: "20%",
+                left: 0,
+                right: 0,
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "flex-end",
+                gap: 4,
+                height: 60,
+                pointerEvents: "none"
+              }}
+            >
+              {waveformBars.map((bar) => (
+                <motion.div
+                  key={bar.id}
+                  initial={{ height: 0 }}
+                  animate={{ 
+                    height: bar.height,
+                    transition: { delay: bar.delay, duration: 0.3 }
+                  }}
+                  exit={{ height: 0 }}
+                  style={{
+                    width: 4,
+                    backgroundColor: "#ff4081",
+                    borderRadius: 2
+                  }}
+                />
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-      {/* Indicator Độ sáng/Âm lượng (Sát mép) */}
-      <AnimatePresence>
-        {feedback.visible && (feedback.type === "brightness" || feedback.type === "volume") && (
-          <motion.div
-            initial={{ opacity: 0, x: feedback.type === "brightness" ? -20 : 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0 }}
-            style={{
-              position: "absolute", top: "20%",
-              left: feedback.type === "brightness" ? "5%" : "95%",
-              x: "-50%", zIndex: 12,
-              backgroundColor: "rgba(0,0,0,0.7)", padding: "10px", borderRadius: "10px", color: "white"
-            }}
-          >
-            {feedback.type === "brightness" ? <Brightness6 /> : <VolumeUp />}
-            <Typography variant="caption" display="block">{indicatorValue}</Typography>
-          </motion.div>
-        )}
-      </AnimatePresence>
+        {/* Brightness Indicator */}
+        <AnimatePresence>
+          {showBrightnessIndicator && (
+            <motion.div
+              initial={{ x: -100, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: -100, opacity: 0 }}
+              style={{
+                position: "absolute",
+                left: 20,
+                top: "50%",
+                transform: "translateY(-50%)",
+                background: "rgba(0,0,0,0.7)",
+                borderRadius: 8,
+                padding: "12px 8px",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: 8
+              }}
+            >
+              {brightness > 50 ? (
+                <BrightnessHigh sx={{ color: "white" }} />
+              ) : (
+                <BrightnessLow sx={{ color: "white" }} />
+              )}
+              <Typography variant="caption" sx={{ color: "white" }}>
+                {Math.round(brightness)}%
+              </Typography>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-      {/* Bottom Toolbar */}
-      <AnimatePresence>
-        {showToolbar && (
-          <motion.div
-            initial={{ y: 50 }} animate={{ y: 0 }} exit={{ y: 50 }}
-            style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "linear-gradient(transparent, rgba(0,0,0,0.9))", padding: "15px", zIndex: 11 }}
-          >
-            <LinearProgress variant="determinate" value={progress} sx={{ height: 4, mb: 1, bgcolor: "rgba(255,255,255,0.2)", "& .MuiLinearProgress-bar": { bgcolor: "red" } }} />
-            <Stack direction="row" justifyContent="space-between" alignItems="center">
-              <Typography variant="body2" color="white">{title}</Typography>
-              <IconButton size="small" sx={{color: "white"}} onClick={() => containerRef.current.requestFullscreen()}><Fullscreen /></IconButton>
-            </Stack>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </Box>
+        {/* Volume Indicator */}
+        <AnimatePresence>
+          {showVolumeIndicator && (
+            <motion.div
+              initial={{ x: 100, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: 100, opacity: 0 }}
+              style={{
+                position: "absolute",
+                right: 20,
+                top: "50%",
+                transform: "translateY(-50%)",
+                background: "rgba(0,0,0,0.7)",
+                borderRadius: 8,
+                padding: "12px 8px",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: 8
+              }}
+            >
+              {volume === 0 ? (
+                <VolumeOff sx={{ color: "white" }} />
+              ) : volume < 0.5 ? (
+                <VolumeDown sx={{ color: "white" }} />
+              ) : (
+                <VolumeUp sx={{ color: "white" }} />
+              )}
+              <Typography variant="caption" sx={{ color: "white" }}>
+                {Math.round(volume * 100)}%
+              </Typography>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Custom Controls */}
+        <AnimatePresence>
+          {showControls && (
+            <motion.div
+              initial={{ y: 100 }}
+              animate={{ y: 0 }}
+              exit={{ y: 100 }}
+              transition={{ type: "spring", damping: 20 }}
+              style={{
+                position: "absolute",
+                bottom: 0,
+                left: 0,
+                right: 0,
+                background: "linear-gradient(transparent, rgba(0,0,0,0.8))",
+                padding: "20px",
+                display: "flex",
+                alignItems: "center",
+                gap: 16
+              }}
+            >
+              <IconButton 
+                onClick={() => handleDoubleTap('backward')}
+                sx={{ color: "white" }}
+              >
+                <Replay10 />
+              </IconButton>
+              
+              <IconButton 
+                onClick={() => handleDoubleTap('forward')}
+                sx={{ color: "white" }}
+              >
+                <Forward10 />
+              </IconButton>
+
+              <IconButton 
+                onClick={toggleMute}
+                sx={{ color: "white" }}
+              >
+                {isMuted ? <VolumeOff /> : volume < 0.5 ? <VolumeDown /> : <VolumeUp />}
+              </IconButton>
+
+              <Slider
+                size="small"
+                value={volume}
+                onChange={(_, value) => {
+                  setVolume(value);
+                  if (videoRef.current) {
+                    videoRef.current.volume = value;
+                  }
+                  setIsMuted(value === 0);
+                }}
+                min={0}
+                max={1}
+                step={0.01}
+                sx={{ 
+                  width: 100,
+                  color: "white",
+                  "& .MuiSlider-track": { bgcolor: "white" },
+                  "& .MuiSlider-thumb": { bgcolor: "white" }
+                }}
+              />
+
+              <Box sx={{ flex: 1 }} />
+
+              <IconButton 
+                onClick={() => {
+                  const newBrightness = Math.max(20, brightness - 10);
+                  setBrightness(newBrightness);
+                }}
+                sx={{ color: "white" }}
+              >
+                <BrightnessLow />
+              </IconButton>
+
+              <Slider
+                size="small"
+                value={brightness}
+                onChange={(_, value) => setBrightness(value)}
+                min={20}
+                max={150}
+                sx={{ 
+                  width: 100,
+                  color: "white",
+                  "& .MuiSlider-track": { bgcolor: "white" },
+                  "& .MuiSlider-thumb": { bgcolor: "white" }
+                }}
+              />
+
+              <IconButton 
+                onClick={() => {
+                  const newBrightness = Math.min(150, brightness + 10);
+                  setBrightness(newBrightness);
+                }}
+                sx={{ color: "white" }}
+              >
+                <BrightnessHigh />
+              </IconButton>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Zone Indicators */}
+        <Box
+          sx={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            width: "20%",
+            height: "100%",
+            pointerEvents: "none",
+            borderRight: showControls ? "2px dashed rgba(255,255,255,0.3)" : "none",
+            "&::before": {
+              content: '"Độ sáng"',
+              position: "absolute",
+              top: 10,
+              left: 10,
+              color: "rgba(255,255,255,0.5)",
+              fontSize: 12,
+              opacity: showControls ? 1 : 0,
+              transition: "opacity 0.3s"
+            }
+          }}
+        />
+
+        <Box
+          sx={{
+            position: "absolute",
+            top: 0,
+            right: 0,
+            width: "20%",
+            height: "100%",
+            pointerEvents: "none",
+            borderLeft: showControls ? "2px dashed rgba(255,255,255,0.3)" : "none",
+            "&::before": {
+              content: '"Âm lượng"',
+              position: "absolute",
+              top: 10,
+              right: 10,
+              color: "rgba(255,255,255,0.5)",
+              fontSize: 12,
+              opacity: showControls ? 1 : 0,
+              transition: "opacity 0.3s"
+            }
+          }}
+        />
+      </Box>
+    </Card>
   );
 };
 
