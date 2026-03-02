@@ -21,7 +21,7 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
   
   // States cho hiệu ứng
   const [feedback, setFeedback] = useState({ visible: false, type: "", side: "" });
-  const [seekAccumulator, setSeekAccumulator] = useState(0); // Cộng dồn số giây tua
+  const [seekAccumulator, setSeekAccumulator] = useState(0); 
   const [indicatorValue, setIndicatorValue] = useState("");
 
   // Tự động ẩn Toolbar
@@ -51,7 +51,7 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
 
       if (tapCount === 1) {
         // 1 tap: Chỉ hiện/ẩn bảng điều khiển
-        setShowToolbar(!showToolbar);
+        setShowToolbar((prev) => !prev);
         if (!showToolbar) autoHideToolbar();
       } 
       else if (tapCount >= 2) {
@@ -59,7 +59,6 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
         const direction = isRight ? 1 : -1;
         videoRef.current.currentTime += direction * 10;
         
-        // Cập nhật giá trị cộng dồn hiển thị
         setSeekAccumulator(prev => prev + 10);
         setFeedback({ 
           visible: true, 
@@ -67,7 +66,6 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
           side: isRight ? "right" : "left" 
         });
 
-        // Reset sau khi ngừng tap 800ms
         clearTimeout(window.seekTimer);
         window.seekTimer = setTimeout(() => {
           setFeedback(f => ({ ...f, visible: false }));
@@ -80,17 +78,15 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
       const isLeft = (ix - rect.left) < rect.width / 2;
       
       if (active) {
-        const delta = -my * 0.005; // Độ nhạy vuốt
+        const delta = -my * 0.005; 
 
         if (isLeft) {
-          // Vuốt bên trái: Độ sáng
           const currentBr = parseFloat(videoRef.current.style.filter?.replace("brightness(", "") || 1);
           const newBr = Math.min(2, Math.max(0.4, currentBr + delta));
           videoRef.current.style.filter = `brightness(${newBr})`;
           setIndicatorValue(`${Math.round(newBr * 100)}%`);
           setFeedback({ visible: true, type: "brightness", side: "left-top" });
         } else {
-          // Vuốt bên phải: Âm thanh
           const newVol = Math.min(1, Math.max(0, videoRef.current.volume + delta));
           videoRef.current.volume = newVol;
           setIndicatorValue(`${Math.round(newVol * 100)}%`);
@@ -154,11 +150,11 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
         )}
       </AnimatePresence>
 
-      {/* 2. HIỆU ỨNG SÓNG ÂM TUA PHIM (MULTITAP) */}
+      {/* 2. HIỆU ỨNG SÓNG ÂM TUA PHIM */}
       <AnimatePresence>
         {feedback.visible && (feedback.type === "forward" || feedback.type === "rewind") && (
           <motion.div
-            key={seekAccumulator} // Quan trọng: Reset animation mỗi khi cộng dồn giây
+            key={seekAccumulator} 
             initial={{ opacity: 1, scale: 0.8 }}
             animate={{ opacity: 0, scale: 1.5 }}
             style={{
@@ -200,7 +196,7 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
         )}
       </AnimatePresence>
 
-      {/* 4. THANH TOOLBAR (BẢNG ĐIỀU KHIỂN) */}
+      {/* 4. THANH TOOLBAR */}
       <AnimatePresence>
         {showToolbar && (
           <motion.div
@@ -210,7 +206,7 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
             style={{
               position: "absolute", bottom: 0, left: 0, right: 0,
               background: "linear-gradient(transparent, rgba(0,0,0,0.95))",
-              padding: "20px", z={{ zIndex: 11 }}
+              padding: "20px", zIndex: 11
             }}
           >
             <Typography variant="subtitle1" sx={{ color: "white", mb: 1, fontWeight: 500 }}>{title}</Typography>
