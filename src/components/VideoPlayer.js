@@ -54,7 +54,6 @@ const VideoPlayer = ({
   const [duration, setDuration] = useState(0);
   const [showSettings, setShowSettings] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
-  const [isDragging, setIsDragging] = useState(false);
 
   // Tạo waveform animation khi double tap
   const generateWaveform = useCallback(() => {
@@ -136,48 +135,28 @@ const VideoPlayer = ({
         const rect = container.getBoundingClientRect();
         const relativeX = clientX - rect.left;
         const width = rect.width;
-        const height = rect.height;
 
-        // Phân vùng: 15% trái cho brightness, 15% phải cho volume
-        const leftZone = width * 0.15;
-        const rightZone = width * 0.85;
+        // Phân vùng: 20% trái cho brightness, 20% phải cho volume
+        const leftZone = width * 0.2;
+        const rightZone = width * 0.8;
 
         if (relativeX < leftZone) {
           // Điều chỉnh brightness
-          if (first) {
-            setIsDragging(true);
-            setShowBrightnessIndicator(true);
-          }
-          
-          // Tính toán brightness dựa trên vị trí kéo
-          const dragPercent = -my / height;
-          const brightnessChange = dragPercent * 100;
-          const newBrightness = Math.max(20, Math.min(150, brightness + brightnessChange));
+          const delta = -my / 200;
+          const newBrightness = Math.max(20, Math.min(150, brightness + delta * 50));
           setBrightness(newBrightness);
-          
-          if (last) {
-            setIsDragging(false);
-            setTimeout(() => setShowBrightnessIndicator(false), 1000);
-          }
+          setShowBrightnessIndicator(true);
+          if (last) setTimeout(() => setShowBrightnessIndicator(false), 1000);
         } else if (relativeX > rightZone) {
           // Điều chỉnh volume
-          if (first) {
-            setIsDragging(true);
-            setShowVolumeIndicator(true);
-          }
-          
-          // Tính toán volume dựa trên vị trí kéo
-          const dragPercent = -my / height;
-          let newVolume = Math.max(0, Math.min(1, volume + dragPercent));
+          const delta = -my / 200;
+          let newVolume = Math.max(0, Math.min(1, volume + delta));
           setVolume(newVolume);
           if (videoRef.current) {
             videoRef.current.volume = newVolume;
           }
-          
-          if (last) {
-            setIsDragging(false);
-            setTimeout(() => setShowVolumeIndicator(false), 1000);
-          }
+          setShowVolumeIndicator(true);
+          if (last) setTimeout(() => setShowVolumeIndicator(false), 1000);
         }
       },
     },
@@ -200,9 +179,6 @@ const VideoPlayer = ({
     let tapTimeout;
 
     const handleTouchEnd = (e) => {
-      // Không xử lý double tap nếu đang kéo
-      if (isDragging) return;
-
       const currentTime = new Date().getTime();
       const tapLength = currentTime - lastTap;
       
@@ -213,17 +189,11 @@ const VideoPlayer = ({
         const rect = video.getBoundingClientRect();
         const touchX = touch.clientX - rect.left;
         
-        // Chỉ xử lý double tap nếu không ở vùng điều khiển brightness/volume
-        const width = rect.width;
-        const leftZone = width * 0.15;
-        const rightZone = width * 0.85;
-        
-        if (touchX > leftZone && touchX < rightZone) {
-          if (touchX < rect.width / 2) {
-            handleDoubleTap('backward');
-          } else {
-            handleDoubleTap('forward');
-          }
+        // Xác định direction dựa trên vị trí tap
+        if (touchX < rect.width / 2) {
+          handleDoubleTap('backward');
+        } else {
+          handleDoubleTap('forward');
         }
         
         clearTimeout(tapTimeout);
@@ -241,24 +211,22 @@ const VideoPlayer = ({
       video.removeEventListener('touchend', handleTouchEnd);
       clearTimeout(tapTimeout);
     };
-  }, [isDragging]);
+  }, []);
 
   // Auto hide controls
   useEffect(() => {
     const handleMouseMove = () => {
-      if (!isDragging) {
-        setShowControls(true);
-        
-        if (controlsTimeoutRef.current) {
-          clearTimeout(controlsTimeoutRef.current);
-        }
-        
-        controlsTimeoutRef.current = setTimeout(() => {
-          if (isPlaying && !isDragging) {
-            setShowControls(false);
-          }
-        }, 3000);
+      setShowControls(true);
+      
+      if (controlsTimeoutRef.current) {
+        clearTimeout(controlsTimeoutRef.current);
       }
+      
+      controlsTimeoutRef.current = setTimeout(() => {
+        if (isPlaying) {
+          setShowControls(false);
+        }
+      }, 3000);
     };
 
     const container = containerRef.current;
@@ -276,7 +244,7 @@ const VideoPlayer = ({
         clearTimeout(controlsTimeoutRef.current);
       }
     };
-  }, [isPlaying, isDragging]);
+  }, [isPlaying]);
 
   // Update time và duration
   useEffect(() => {
@@ -419,24 +387,24 @@ const VideoPlayer = ({
           WebkitUserSelect: "none",
         }}
         {...bindGestures()}
-        onClick={togglePlay}
       >
         <video
           ref={videoRef}
           controls={false}
           autoPlay
+          onClick={togglePlay}
           style={{ 
             width: "100%", 
             height: "100%", 
             objectFit: "contain",
             filter: `brightness(${brightness}%)`,
-            pointerEvents: "none",
+            pointerEvents: "auto",
           }}
         />
 
         {/* Play/Pause Center Indicator */}
         <AnimatePresence>
-          {!isPlaying && showControls && (
+          {!isPlaying && (
             <motion.div
               initial={{ opacity: 0, scale: 0.5 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -645,7 +613,7 @@ const VideoPlayer = ({
           )}
         </AnimatePresence>
 
-        {/* Custom Controls */}
+        {/* Custom Controls - Hạ thấp xuống */}
         <AnimatePresence>
           {showControls && (
             <motion.div
@@ -658,16 +626,15 @@ const VideoPlayer = ({
                 bottom: 0,
                 left: 0,
                 right: 0,
-                background: "linear-gradient(transparent, rgba(0,0,0,0.9))",
-                padding: "12px 16px 8px",
+                background: "linear-gradient(transparent, rgba(0,0,0,0.8))",
+                padding: "8px 12px 4px",
                 zIndex: 30
               }}
-              onClick={(e) => e.stopPropagation()}
             >
-              {/* Progress Bar - Mỏng hơn */}
-              <Box sx={{ width: "100%", mb: 1.5, px: 0.5 }}>
-                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                  <Typography variant="caption" sx={{ color: "white", fontSize: "0.7rem" }}>
+              {/* Progress Bar - Rất mỏng và sát đáy */}
+              <Box sx={{ width: "100%", mb: 1 }}>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                  <Typography variant="caption" sx={{ color: "white", fontSize: "0.65rem", minWidth: 35 }}>
                     {formatTime(currentTime)}
                   </Typography>
                   <Box sx={{ flex: 1, position: "relative" }}>
@@ -682,70 +649,66 @@ const VideoPlayer = ({
                       }}
                       sx={{
                         color: "#ff4081",
-                        height: 3,
-                        padding: "4px 0",
+                        height: 2,
+                        padding: "2px 0",
                         "& .MuiSlider-thumb": {
-                          width: 10,
-                          height: 10,
+                          width: 8,
+                          height: 8,
                           transition: "0.2s",
-                          "&:hover": {
-                            width: 14,
-                            height: 14,
+                          "&:hover, &.Mui-active": {
+                            width: 12,
+                            height: 12,
                           },
-                          "&.Mui-active": {
-                            width: 14,
-                            height: 14,
-                          }
                         },
                         "& .MuiSlider-track": {
                           border: "none",
-                          height: 3,
+                          height: 2,
                         },
                         "& .MuiSlider-rail": {
                           opacity: 0.3,
                           backgroundColor: "#bfbfbf",
-                          height: 3,
+                          height: 2,
                         },
                       }}
                     />
                   </Box>
-                  <Typography variant="caption" sx={{ color: "white", fontSize: "0.7rem" }}>
+                  <Typography variant="caption" sx={{ color: "white", fontSize: "0.65rem", minWidth: 35 }}>
                     {formatTime(duration)}
                   </Typography>
                 </Box>
               </Box>
 
-              {/* Control Buttons */}
-              <Box sx={{ display: "flex", alignItems: "center", gap: { xs: 0.5, sm: 1 } }}>
-                <IconButton onClick={togglePlay} sx={{ color: "white", p: { xs: 0.5, sm: 1 } }}>
+              {/* Control Buttons - Nhỏ gọn */}
+              <Box sx={{ display: "flex", alignItems: "center", gap: { xs: 0.25, sm: 0.5 } }}>
+                <IconButton onClick={togglePlay} sx={{ color: "white", p: { xs: 0.25, sm: 0.5 } }}>
                   {isPlaying ? <Pause fontSize="small" /> : <PlayArrow fontSize="small" />}
                 </IconButton>
 
-                <IconButton onClick={() => handleSeek(-10)} sx={{ color: "white", p: { xs: 0.5, sm: 1 } }}>
+                <IconButton onClick={() => handleSeek(-10)} sx={{ color: "white", p: { xs: 0.25, sm: 0.5 } }}>
                   <Replay10 fontSize="small" />
                 </IconButton>
 
-                <IconButton onClick={() => handleSeek(10)} sx={{ color: "white", p: { xs: 0.5, sm: 1 } }}>
+                <IconButton onClick={() => handleSeek(10)} sx={{ color: "white", p: { xs: 0.25, sm: 0.5 } }}>
                   <Forward10 fontSize="small" />
                 </IconButton>
 
                 {onPrevEpisode && (
-                  <IconButton onClick={onPrevEpisode} sx={{ color: "white", p: { xs: 0.5, sm: 1 } }}>
+                  <IconButton onClick={onPrevEpisode} sx={{ color: "white", p: { xs: 0.25, sm: 0.5 } }}>
                     <SkipPrevious fontSize="small" />
                   </IconButton>
                 )}
 
                 {onNextEpisode && (
-                  <IconButton onClick={onNextEpisode} sx={{ color: "white", p: { xs: 0.5, sm: 1 } }}>
+                  <IconButton onClick={onNextEpisode} sx={{ color: "white", p: { xs: 0.25, sm: 0.5 } }}>
                     <SkipNext fontSize="small" />
                   </IconButton>
                 )}
 
-                <IconButton onClick={toggleMute} sx={{ color: "white", p: { xs: 0.5, sm: 1 } }}>
+                <IconButton onClick={toggleMute} sx={{ color: "white", p: { xs: 0.25, sm: 0.5 } }}>
                   {isMuted ? <VolumeOff fontSize="small" /> : volume < 0.5 ? <VolumeDown fontSize="small" /> : <VolumeUp fontSize="small" />}
                 </IconButton>
 
-                <Box sx={{ display: { xs: "none", sm: "block" }, width: 60 }}>
+                <Box sx={{ display: { xs: "none", sm: "block" }, width: 50 }}>
                   <Slider
                     size="small"
                     value={volume}
@@ -761,12 +724,12 @@ const VideoPlayer = ({
                     step={0.01}
                     sx={{ 
                       color: "white",
-                      height: 3,
-                      "& .MuiSlider-track": { bgcolor: "white", height: 3 },
-                      "& .MuiSlider-rail": { height: 3 },
+                      height: 2,
+                      "& .MuiSlider-track": { bgcolor: "white", height: 2 },
+                      "& .MuiSlider-rail": { height: 2 },
                       "& .MuiSlider-thumb": { 
-                        width: 10, 
-                        height: 10,
+                        width: 8, 
+                        height: 8,
                         bgcolor: "white" 
                       }
                     }}
@@ -777,12 +740,12 @@ const VideoPlayer = ({
 
                 <IconButton 
                   onClick={() => setShowSettings(!showSettings)}
-                  sx={{ color: "white", p: { xs: 0.5, sm: 1 } }}
+                  sx={{ color: "white", p: { xs: 0.25, sm: 0.5 } }}
                 >
                   <Settings fontSize="small" />
                 </IconButton>
 
-                <IconButton onClick={toggleFullscreen} sx={{ color: "white", p: { xs: 0.5, sm: 1 } }}>
+                <IconButton onClick={toggleFullscreen} sx={{ color: "white", p: { xs: 0.25, sm: 0.5 } }}>
                   {isFullscreen ? <FullscreenExit fontSize="small" /> : <Fullscreen fontSize="small" />}
                 </IconButton>
               </Box>
@@ -796,16 +759,16 @@ const VideoPlayer = ({
                     exit={{ opacity: 0, y: 20 }}
                     style={{
                       position: "absolute",
-                      bottom: 70,
-                      right: 16,
+                      bottom: 60,
+                      right: 12,
                       background: "rgba(0,0,0,0.95)",
                       borderRadius: 8,
-                      padding: 8,
-                      minWidth: 150,
+                      padding: 6,
+                      minWidth: 130,
                       border: "1px solid rgba(255,255,255,0.1)"
                     }}
                   >
-                    <Typography variant="caption" sx={{ color: "gray", px: 2, py: 1, display: "block" }}>
+                    <Typography variant="caption" sx={{ color: "gray", px: 1.5, py: 0.5, display: "block" }}>
                       Tốc độ phát
                     </Typography>
                     {[0.5, 0.75, 1, 1.25, 1.5, 2].map((speed) => (
@@ -813,8 +776,8 @@ const VideoPlayer = ({
                         key={speed}
                         onClick={() => changePlaybackSpeed(speed)}
                         sx={{
-                          px: 2,
-                          py: 1,
+                          px: 1.5,
+                          py: 0.5,
                           cursor: "pointer",
                           bgcolor: playbackSpeed === speed ? "#ff4081" : "transparent",
                           borderRadius: 1,
@@ -823,7 +786,7 @@ const VideoPlayer = ({
                           }
                         }}
                       >
-                        <Typography variant="body2" sx={{ color: "white" }}>
+                        <Typography variant="body2" sx={{ color: "white", fontSize: "0.8rem" }}>
                           {speed === 1 ? "Bình thường" : `${speed}x`}
                         </Typography>
                       </Box>
@@ -844,105 +807,59 @@ const VideoPlayer = ({
               exit={{ y: -50, opacity: 0 }}
               style={{
                 position: "absolute",
-                top: 16,
-                left: 16,
+                top: 12,
+                left: 12,
                 background: "rgba(0,0,0,0.6)",
-                padding: "4px 12px",
-                borderRadius: 20,
+                padding: "2px 8px",
+                borderRadius: 16,
                 backdropFilter: "blur(5px)",
                 zIndex: 30,
                 pointerEvents: "none"
               }}
             >
-              <Typography variant="body2" sx={{ color: "white", fontSize: { xs: "0.75rem", sm: "0.875rem" } }}>
+              <Typography variant="body2" sx={{ color: "white", fontSize: { xs: "0.7rem", sm: "0.8rem" } }}>
                 {currentEpisode}
               </Typography>
             </motion.div>
           )}
         </AnimatePresence>
 
-        {/* Zone Indicators - Mờ hơn và chỉ hiện khi có controls */}
+        {/* Zone Indicators - Nhẹ nhàng */}
         <AnimatePresence>
           {showControls && (
             <>
               <motion.div
                 initial={{ opacity: 0 }}
-                animate={{ opacity: 0.15 }}
+                animate={{ opacity: 0.1 }}
                 exit={{ opacity: 0 }}
                 style={{
                   position: "absolute",
                   top: 0,
                   left: 0,
-                  width: "15%",
+                  width: "20%",
                   height: "100%",
-                  background: "linear-gradient(90deg, rgba(255,255,255,0.1) 0%, transparent 100%)",
+                  background: "linear-gradient(90deg, rgba(255,255,255,0.05) 0%, transparent 100%)",
                   pointerEvents: "none",
-                  borderRight: "1px dashed rgba(255,255,255,0.2)",
+                  borderRight: "1px dashed rgba(255,255,255,0.1)",
                   zIndex: 5
                 }}
               />
               <motion.div
                 initial={{ opacity: 0 }}
-                animate={{ opacity: 0.15 }}
+                animate={{ opacity: 0.1 }}
                 exit={{ opacity: 0 }}
                 style={{
                   position: "absolute",
                   top: 0,
                   right: 0,
-                  width: "15%",
+                  width: "20%",
                   height: "100%",
-                  background: "linear-gradient(-90deg, rgba(255,255,255,0.1) 0%, transparent 100%)",
+                  background: "linear-gradient(-90deg, rgba(255,255,255,0.05) 0%, transparent 100%)",
                   pointerEvents: "none",
-                  borderLeft: "1px dashed rgba(255,255,255,0.2)",
+                  borderLeft: "1px dashed rgba(255,255,255,0.1)",
                   zIndex: 5
                 }}
               />
-            </>
-          )}
-        </AnimatePresence>
-
-        {/* Zone Labels */}
-        <AnimatePresence>
-          {showControls && (
-            <>
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 0.5, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                style={{
-                  position: "absolute",
-                  top: "50%",
-                  left: 10,
-                  transform: "translateY(-50%) rotate(-90deg)",
-                  color: "white",
-                  fontSize: "0.7rem",
-                  textTransform: "uppercase",
-                  letterSpacing: 1,
-                  whiteSpace: "nowrap",
-                  zIndex: 6
-                }}
-              >
-                ĐỘ SÁNG
-              </motion.div>
-              <motion.div
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 0.5, x: 0 }}
-                exit={{ opacity: 0, x: 20 }}
-                style={{
-                  position: "absolute",
-                  top: "50%",
-                  right: 10,
-                  transform: "translateY(-50%) rotate(90deg)",
-                  color: "white",
-                  fontSize: "0.7rem",
-                  textTransform: "uppercase",
-                  letterSpacing: 1,
-                  whiteSpace: "nowrap",
-                  zIndex: 6
-                }}
-              >
-                ÂM LƯỢNG
-              </motion.div>
             </>
           )}
         </AnimatePresence>
