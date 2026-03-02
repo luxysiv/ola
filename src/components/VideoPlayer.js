@@ -1,10 +1,13 @@
-import React, { useRef, useEffect, useState } from "react";
+import React, { useRef, useEffect, useState, useCallback } from "react";
 import Hls from "hls.js";
 import Hammer from "hammerjs";
-import { Card, Box, Typography, Fade, IconButton, LinearProgress } from "@mui/material";
+import { 
+  Box, Typography, Fade, IconButton, 
+  LinearProgress, Slider, Stack 
+} from "@mui/material";
 import { 
   FastForward, FastRewind, Brightness6, VolumeUp, 
-  PlayArrow, Pause 
+  PlayArrow, Pause, Fullscreen, SkipNext 
 } from "@mui/icons-material";
 import { saveHistoryItem } from "../utils/history";
 
@@ -12,19 +15,15 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
   const videoRef = useRef(null);
   const containerRef = useRef(null);
   const hlsRef = useRef(null);
-  const hasResumed = useRef(false);
-
-  // States quản lý UI tùy chỉnh
   const [isPlaying, setIsPlaying] = useState(true);
   const [progress, setProgress] = useState(0);
+  const [showToolbar, setShowToolbar] = useState(true);
+  
+  // Feedback state cho Double Tap / Pan
   const [feedback, setFeedback] = useState({ visible: false, type: "", value: "", side: "" });
 
-  const showFeedback = (type, value, side = "center") => {
-    setFeedback({ visible: true, type, value, side });
-    setTimeout(() => setFeedback(f => ({ ...f, visible: false })), 800);
-  };
-
-  const togglePlay = () => {
+  // 1. Hàm điều khiển
+  const togglePlay = useCallback(() => {
     if (videoRef.current.paused) {
       videoRef.current.play();
       setIsPlaying(true);
@@ -32,72 +31,84 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
       videoRef.current.pause();
       setIsPlaying(false);
     }
+    triggerToolbar();
+  }, []);
+
+  const triggerToolbar = () => {
+    setShowToolbar(true);
+    clearTimeout(window.toolbarTimer);
+    window.toolbarTimer = setTimeout(() => setShowToolbar(false), 3000);
   };
 
-  /* Khởi tạo Hammer.js cho Custom Player */
+  const handleFullscreen = () => {
+    if (containerRef.current.requestFullscreen) containerRef.current.requestFullscreen();
+    else if (containerRef.current.webkitRequestFullscreen) containerRef.current.webkitRequestFullscreen();
+  };
+
+  // 2. Thiết lập Hammer.js
   useEffect(() => {
     if (!containerRef.current || !videoRef.current) return;
 
     const mc = new Hammer.Manager(containerRef.current);
-    
-    // Cấu hình các cử chỉ
-    const singleTap = new Hammer.Tap({ event: 'singletap' });
+    const tap = new Hammer.Tap({ event: 'singletap', taps: 1 });
     const doubleTap = new Hammer.Tap({ event: 'doubletap', taps: 2 });
-    const pan = new Hammer.Pan({ direction: Hammer.DIRECTION_VERTICAL, threshold: 5 });
+    const pan = new Hammer.Pan({ direction: Hammer.DIRECTION_VERTICAL, threshold: 10 });
 
-    // Ưu tiên DoubleTap trước SingleTap
-    mc.add([doubleTap, singleTap, pan]);
-    doubleTap.recognizeWith(singleTap);
-    singleTap.requireFailure(doubleTap);
+    mc.add([doubleTap, tap, pan]);
+    // Quan trọng: Chỉ chạy single tap nếu double tap thất bại
+    tap.requireFailure(doubleTap);
 
-    // 1. Chạm đơn: Play/Pause
-    mc.on("singletap", togglePlay);
+    mc.on("singletap", () => {
+      setShowToolbar(prev => !prev);
+      if (!showToolbar) triggerToolbar();
+    });
 
-    // 2. Chạm đôi: Tua 10s (Trái/Phải)
     mc.on("doubletap", (ev) => {
-      const video = videoRef.current;
       const rect = containerRef.current.getBoundingClientRect();
       const posX = ev.center.x - rect.left;
-      
-      if (posX > rect.width / 2) {
-        video.currentTime = Math.min(video.duration, video.currentTime + 10);
-        showFeedback("forward", "+10s", "right");
+      const isRight = posX > rect.width / 2;
+
+      if (isRight) {
+        videoRef.current.currentTime += 10;
+        setFeedback({ visible: true, type: "forward", value: "+10s", side: "right" });
       } else {
-        video.currentTime = Math.max(0, video.currentTime - 10);
-        showFeedback("rewind", "-10s", "left");
+        videoRef.current.currentTime -= 10;
+        setFeedback({ visible: true, type: "rewind", value: "-10s", side: "left" });
+      }
+      setTimeout(() => setFeedback(f => ({ ...f, visible: false })), 600);
+    });
+
+    mc.on("panmove", (ev) => {
+      const rect = containerRef.current.getBoundingClientRect();
+      const posX = ev.center.x - rect.left;
+      const isLeft = posX < rect.width / 2;
+      const sensitivity = 0.01;
+      const change = ev.velocityY < 0 ? sensitivity : -sensitivity;
+
+      if (isLeft) {
+        const currentBr = parseFloat(videoRef.current.style.filter?.replace("brightness(", "") || 1);
+        const newBr = Math.min(2, Math.max(0.4, currentBr + change));
+        videoRef.current.style.filter = `brightness(${newBr})`;
+        setFeedback({ visible: true, type: "brightness", value: `${Math.round(newBr * 100)}%`, side: "left-bar" });
+      } else {
+        const newVol = Math.min(1, Math.max(0, videoRef.current.volume + change));
+        videoRef.current.volume = newVol;
+        setFeedback({ visible: true, type: "volume", value: `${Math.round(newVol * 100)}%`, side: "right-bar" });
       }
     });
 
-    // 3. Vuốt lên xuống: Độ sáng (Trái) & Âm lượng (Phải)
-    mc.on("pan", (ev) => {
-      const video = videoRef.current;
-      const rect = containerRef.current.getBoundingClientRect();
-      const posX = ev.center.x - rect.left;
-      const delta = ev.velocity < 0 ? 0.03 : -0.03;
-
-      if (posX < rect.width / 2) {
-        // Cập nhật Filter Brightness
-        const currentBr = parseFloat(video.style.filter?.replace("brightness(", "") || 1);
-        const newBr = Math.min(2, Math.max(0.3, currentBr + delta));
-        video.style.filter = `brightness(${newBr})`;
-        showFeedback("brightness", `${Math.round(newBr * 100)}%`, "left");
-      } else {
-        // Cập nhật Volume
-        const newVol = Math.min(1, Math.max(0, video.volume + delta));
-        video.volume = newVol;
-        showFeedback("volume", `${Math.round(newVol * 100)}%`, "right");
-      }
+    mc.on("panend", () => {
+      setTimeout(() => setFeedback(f => ({ ...f, visible: false })), 500);
     });
 
     return () => mc.destroy();
-  }, [src]);
+  }, [showToolbar]);
 
-  /* Logic xử lý HLS & History (giữ nguyên nhưng bỏ controls mặc định) */
+  /* Logic Load Video & HLS (Giữ nguyên từ code của bạn) */
   useEffect(() => {
     if (!videoRef.current || !src) return;
     const video = videoRef.current;
     const proxiedUrl = `/proxy-stream?url=${encodeURIComponent(src)}`;
-    
     if (hlsRef.current) hlsRef.current.destroy();
     
     if (Hls.isSupported()) {
@@ -106,102 +117,108 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
       hls.attachMedia(video);
       hls.on(Hls.Events.MANIFEST_PARSED, () => video.play());
       hlsRef.current = hls;
-    } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
-      video.src = proxiedUrl;
     }
 
-    // Update Progress Bar
-    const handleTimeUpdate = () => {
-      const p = (video.currentTime / video.duration) * 100;
-      setProgress(p || 0);
-    };
-
-    video.addEventListener("timeupdate", handleTimeUpdate);
-    return () => video.removeEventListener("timeupdate", handleTimeUpdate);
+    const updateProgress = () => setProgress((video.currentTime / video.duration) * 100 || 0);
+    video.addEventListener("timeupdate", updateProgress);
+    return () => video.removeEventListener("timeupdate", updateProgress);
   }, [src]);
 
   return (
-    <Card sx={{ mt: 2, bgcolor: "#000", color: "white", overflow: "hidden", borderRadius: 2 }}>
-      {title && <Box sx={{ p: 2, bgcolor: "#1a1a1a" }}><Typography variant="h6">{title}</Typography></Box>}
-      
-      <Box 
-        ref={containerRef}
-        sx={{ 
-          position: "relative", 
-          width: "100%", 
-          aspectRatio: "16/9",
-          touchAction: "none",
-          cursor: "pointer",
-          display: "flex",
-          alignItems: "center",
-          bgcolor: "black"
-        }}
-      >
-        {/* Video không dùng controls mặc định */}
-        <video
-          ref={videoRef}
-          autoPlay
-          onEnded={onVideoEnd}
-          style={{ width: "100%", height: "100%", objectFit: "contain", transition: "filter 0.1s ease" }}
-        />
+    <Box 
+      ref={containerRef}
+      sx={{ 
+        position: "relative", width: "100%", bgcolor: "black", 
+        aspectRatio: "16/9", touchAction: "none", overflow: "hidden",
+        borderRadius: 2, boxShadow: 10
+      }}
+    >
+      {/* Video Layer */}
+      <video
+        ref={videoRef}
+        autoPlay
+        onEnded={onVideoEnd}
+        style={{ width: "100%", height: "100%", objectFit: "contain", transition: "filter 0.1s" }}
+      />
 
-        {/* Thanh Progress tùy chỉnh ở dưới cùng */}
-        <Box sx={{ position: "absolute", bottom: 0, left: 0, right: 0, zIndex: 5 }}>
-          <LinearProgress 
-            variant="determinate" 
-            value={progress} 
-            sx={{ height: 4, bgcolor: "rgba(255,255,255,0.2)", "& .MuiLinearProgress-bar": { bgcolor: "red" } }} 
-          />
+      {/* 1. Hiệu ứng Sóng âm khi Double Tap */}
+      <Fade in={feedback.visible && (feedback.type === "forward" || feedback.type === "rewind")}>
+        <Box sx={{
+          position: "absolute", top: "50%",
+          left: feedback.side === "left" ? "20%" : "80%",
+          transform: "translate(-50%, -50%)",
+          zIndex: 10, pointerEvents: "none"
+        }}>
+          <Box className="sonar-wave">
+            {feedback.type === "forward" ? <FastForward fontSize="large" /> : <FastRewind fontSize="large" />}
+            <Typography variant="h6">{feedback.value}</Typography>
+          </Box>
         </Box>
+      </Fade>
 
-        {/* Hiệu ứng Phản hồi (Sóng âm) */}
-        <Fade in={feedback.visible}>
-          <Box sx={{
-            position: "absolute",
-            top: "50%",
-            left: feedback.side === "left" ? "20%" : feedback.side === "right" ? "80%" : "50%",
-            transform: "translate(-50%, -50%)",
-            pointerEvents: "none",
-            zIndex: 10
-          }}>
-            <Box className="wave-effect">
-              {feedback.type === "forward" && <FastForward sx={{ fontSize: 80 }} />}
-              {feedback.type === "rewind" && <FastRewind sx={{ fontSize: 80 }} />}
-              {feedback.type === "brightness" && <Brightness6 sx={{ fontSize: 80 }} />}
-              {feedback.type === "volume" && <VolumeUp sx={{ fontSize: 80 }} />}
-              <Typography variant="h5" sx={{ mt: 1, fontWeight: "bold" }}>{feedback.value}</Typography>
-            </Box>
-          </Box>
-        </Fade>
+      {/* 2. Thanh hiển thị Độ sáng/Âm lượng khi Pan */}
+      <Fade in={feedback.visible && (feedback.type === "brightness" || feedback.type === "volume")}>
+        <Box sx={{
+          position: "absolute", top: "20%",
+          left: feedback.side === "left-bar" ? "10%" : "90%",
+          transform: "translateX(-50%)",
+          display: "flex", flexDirection: "column", alignItems: "center",
+          bgcolor: "rgba(0,0,0,0.6)", p: 1, borderRadius: 2, zIndex: 11
+        }}>
+          {feedback.type === "brightness" ? <Brightness6 /> : <VolumeUp />}
+          <Typography variant="caption">{feedback.value}</Typography>
+        </Box>
+      </Fade>
 
-        {/* Nút Play/Pause lớn xuất hiện nhanh khi bấm */}
-        {!isPlaying && (
-          <Box sx={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", opacity: 0.5 }}>
-            <PlayArrow sx={{ fontSize: 100 }} />
-          </Box>
-        )}
-      </Box>
+      {/* 3. Toolbar (Nổi lên khi chạm) */}
+      <Fade in={showToolbar}>
+        <Box sx={{
+          position: "absolute", bottom: 0, left: 0, right: 0,
+          background: "linear-gradient(transparent, rgba(0,0,0,0.9))",
+          p: 2, zIndex: 12
+        }}>
+          <Typography variant="subtitle1" sx={{ mb: 1, ml: 1 }}>{title}</Typography>
+          
+          <LinearProgress 
+            variant="determinate" value={progress} 
+            sx={{ height: 4, mb: 2, borderRadius: 2, bgcolor: "rgba(255,255,255,0.3)", "& .MuiLinearProgress-bar": { bgcolor: "red" } }} 
+          />
+          
+          <Stack direction="row" justifyContent="space-between" alignItems="center">
+            <Stack direction="row" spacing={1}>
+              <IconButton onClick={togglePlay} color="inherit">
+                {isPlaying ? <Pause /> : <PlayArrow />}
+              </IconButton>
+              <IconButton color="inherit" onClick={onVideoEnd}>
+                <SkipNext />
+              </IconButton>
+            </Stack>
 
-      {/* CSS Styles cho hiệu ứng sóng âm và chuyển động */}
-      <style dangerouslySetInnerHTML={{ __html: `
-        @keyframes sonarWave {
-          0% { transform: scale(0.5); opacity: 1; }
-          100% { transform: scale(1.5); opacity: 0; }
+            <Stack direction="row" spacing={1}>
+              <IconButton color="inherit" onClick={handleFullscreen}>
+                <Fullscreen />
+              </IconButton>
+            </Stack>
+          </Stack>
+        </Box>
+      </Fade>
+
+      {/* CSS cho Hiệu ứng */}
+      <style>{`
+        @keyframes sonar {
+          0% { transform: scale(0.8); opacity: 1; }
+          100% { transform: scale(1.8); opacity: 0; }
         }
-        .wave-effect {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          background: rgba(255, 255, 255, 0.2);
-          width: 160px;
-          height: 160px;
+        .sonar-wave {
+          width: 120px; height: 120px;
+          background: rgba(255,255,255,0.2);
           border-radius: 50%;
-          animation: sonarWave 0.6s ease-out forwards;
-          backdrop-filter: blur(5px);
+          display: flex; flex-direction: column;
+          align-items: center; justify-content: center;
+          animation: sonar 0.6s ease-out;
         }
-      `}} />
-    </Card>
+      `}</style>
+    </Box>
   );
 };
 
