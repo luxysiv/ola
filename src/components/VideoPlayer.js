@@ -3,13 +3,12 @@ import Hls from "hls.js";
 import Hammer from "hammerjs";
 import { 
   Box, Typography, Fade, IconButton, 
-  LinearProgress, Slider, Stack 
+  LinearProgress, Stack 
 } from "@mui/material";
 import { 
   FastForward, FastRewind, Brightness6, VolumeUp, 
   PlayArrow, Pause, Fullscreen, SkipNext 
 } from "@mui/icons-material";
-import { saveHistoryItem } from "../utils/history";
 
 const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
   const videoRef = useRef(null);
@@ -19,11 +18,13 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
   const [progress, setProgress] = useState(0);
   const [showToolbar, setShowToolbar] = useState(true);
   
-  // Feedback state cho Double Tap / Pan
+  // State cho hiệu ứng tua và thông số
   const [feedback, setFeedback] = useState({ visible: false, type: "", value: "", side: "" });
+  const [tapCount, setTapCount] = useState(0);
+  const tapTimer = useRef(null);
 
-  // 1. Hàm điều khiển
-  const togglePlay = useCallback(() => {
+  const togglePlay = (e) => {
+    if (e) e.stopPropagation();
     if (videoRef.current.paused) {
       videoRef.current.play();
       setIsPlaying(true);
@@ -31,21 +32,15 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
       videoRef.current.pause();
       setIsPlaying(false);
     }
-    triggerToolbar();
-  }, []);
+    autoHideToolbar();
+  };
 
-  const triggerToolbar = () => {
+  const autoHideToolbar = () => {
     setShowToolbar(true);
-    clearTimeout(window.toolbarTimer);
-    window.toolbarTimer = setTimeout(() => setShowToolbar(false), 3000);
+    clearTimeout(window.hideTimer);
+    window.hideTimer = setTimeout(() => setShowToolbar(false), 3000);
   };
 
-  const handleFullscreen = () => {
-    if (containerRef.current.requestFullscreen) containerRef.current.requestFullscreen();
-    else if (containerRef.current.webkitRequestFullscreen) containerRef.current.webkitRequestFullscreen();
-  };
-
-  // 2. Thiết lập Hammer.js
   useEffect(() => {
     if (!containerRef.current || !videoRef.current) return;
 
@@ -55,35 +50,43 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
     const pan = new Hammer.Pan({ direction: Hammer.DIRECTION_VERTICAL, threshold: 10 });
 
     mc.add([doubleTap, tap, pan]);
-    // Quan trọng: Chỉ chạy single tap nếu double tap thất bại
     tap.requireFailure(doubleTap);
 
+    // 1. Chạm 1 lần: Hiện Toolbar
     mc.on("singletap", () => {
-      setShowToolbar(prev => !prev);
-      if (!showToolbar) triggerToolbar();
+      setShowToolbar(!showToolbar);
+      if (!showToolbar) autoHideToolbar();
     });
 
+    // 2. Double Tap & Multi-Tap (Tua cộng dồn)
     mc.on("doubletap", (ev) => {
       const rect = containerRef.current.getBoundingClientRect();
-      const posX = ev.center.x - rect.left;
-      const isRight = posX > rect.width / 2;
+      const isRight = (ev.center.x - rect.left) > rect.width / 2;
+      const type = isRight ? "forward" : "rewind";
+      
+      // Thực hiện tua 10s
+      videoRef.current.currentTime += isRight ? 10 : -10;
+      
+      // Hiển thị hiệu ứng sóng âm và cộng dồn số giây hiển thị
+      setFeedback({ 
+        visible: true, 
+        type, 
+        value: isRight ? "+10s" : "-10s", 
+        side: isRight ? "right" : "left" 
+      });
 
-      if (isRight) {
-        videoRef.current.currentTime += 10;
-        setFeedback({ visible: true, type: "forward", value: "+10s", side: "right" });
-      } else {
-        videoRef.current.currentTime -= 10;
-        setFeedback({ visible: true, type: "rewind", value: "-10s", side: "left" });
-      }
-      setTimeout(() => setFeedback(f => ({ ...f, visible: false })), 600);
+      // Tự động ẩn hiệu ứng sau 600ms
+      clearTimeout(tapTimer.current);
+      tapTimer.current = setTimeout(() => {
+        setFeedback(f => ({ ...f, visible: false }));
+      }, 600);
     });
 
+    // 3. Vuốt (Pan) chỉnh Brightness/Volume
     mc.on("panmove", (ev) => {
       const rect = containerRef.current.getBoundingClientRect();
-      const posX = ev.center.x - rect.left;
-      const isLeft = posX < rect.width / 2;
-      const sensitivity = 0.01;
-      const change = ev.velocityY < 0 ? sensitivity : -sensitivity;
+      const isLeft = (ev.center.x - rect.left) < rect.width / 2;
+      const change = ev.velocityY < 0 ? 0.01 : -0.01;
 
       if (isLeft) {
         const currentBr = parseFloat(videoRef.current.style.filter?.replace("brightness(", "") || 1);
@@ -97,126 +100,73 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
       }
     });
 
-    mc.on("panend", () => {
-      setTimeout(() => setFeedback(f => ({ ...f, visible: false })), 500);
-    });
+    mc.on("panend", () => setTimeout(() => setFeedback(f => ({ ...f, visible: false })), 500));
 
     return () => mc.destroy();
   }, [showToolbar]);
 
-  /* Logic Load Video & HLS (Giữ nguyên từ code của bạn) */
+  /* Logic HLS & Progress */
   useEffect(() => {
     if (!videoRef.current || !src) return;
     const video = videoRef.current;
-    const proxiedUrl = `/proxy-stream?url=${encodeURIComponent(src)}`;
     if (hlsRef.current) hlsRef.current.destroy();
-    
     if (Hls.isSupported()) {
       const hls = new Hls();
-      hls.loadSource(proxiedUrl);
+      hls.loadSource(`/proxy-stream?url=${encodeURIComponent(src)}`);
       hls.attachMedia(video);
       hls.on(Hls.Events.MANIFEST_PARSED, () => video.play());
       hlsRef.current = hls;
     }
-
-    const updateProgress = () => setProgress((video.currentTime / video.duration) * 100 || 0);
-    video.addEventListener("timeupdate", updateProgress);
-    return () => video.removeEventListener("timeupdate", updateProgress);
+    const up = () => setProgress((video.currentTime / video.duration) * 100 || 0);
+    video.addEventListener("timeupdate", up);
+    return () => video.removeEventListener("timeupdate", up);
   }, [src]);
 
   return (
-    <Box 
-      ref={containerRef}
-      sx={{ 
-        position: "relative", width: "100%", bgcolor: "black", 
-        aspectRatio: "16/9", touchAction: "none", overflow: "hidden",
-        borderRadius: 2, boxShadow: 10
-      }}
-    >
-      {/* Video Layer */}
-      <video
-        ref={videoRef}
-        autoPlay
-        onEnded={onVideoEnd}
-        style={{ width: "100%", height: "100%", objectFit: "contain", transition: "filter 0.1s" }}
-      />
+    <Box ref={containerRef} sx={{ position: "relative", width: "100%", bgcolor: "black", aspectRatio: "16/9", touchAction: "none", overflow: "hidden", borderRadius: 2 }}>
+      <video ref={videoRef} autoPlay onEnded={onVideoEnd} style={{ width: "100%", height: "100%", objectFit: "contain", transition: "filter 0.1s" }} />
 
-      {/* 1. Hiệu ứng Sóng âm khi Double Tap */}
+      {/* Nút Play/Pause trung tâm */}
+      <Fade in={showToolbar}>
+        <Box sx={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", zIndex: 15 }}>
+          <IconButton onClick={togglePlay} sx={{ bgcolor: "rgba(0,0,0,0.5)", "&:hover": {bgcolor: "rgba(0,0,0,0.7)"}, p: 3 }}>
+            {isPlaying ? <Pause sx={{ fontSize: 60, color: "white" }} /> : <PlayArrow sx={{ fontSize: 60, color: "white" }} />}
+          </IconButton>
+        </Box>
+      </Fade>
+
+      {/* Hiệu ứng Sóng âm khi Double Tap */}
       <Fade in={feedback.visible && (feedback.type === "forward" || feedback.type === "rewind")}>
-        <Box sx={{
-          position: "absolute", top: "50%",
-          left: feedback.side === "left" ? "20%" : "80%",
-          transform: "translate(-50%, -50%)",
-          zIndex: 10, pointerEvents: "none"
-        }}>
+        <Box sx={{ position: "absolute", top: "50%", left: feedback.side === "left" ? "25%" : "75%", transform: "translate(-50%, -50%)", zIndex: 10 }}>
           <Box className="sonar-wave">
-            {feedback.type === "forward" ? <FastForward fontSize="large" /> : <FastRewind fontSize="large" />}
-            <Typography variant="h6">{feedback.value}</Typography>
+            {feedback.type === "forward" ? <FastForward sx={{fontSize: 50}} /> : <FastRewind sx={{fontSize: 50}} />}
+            <Typography variant="h6" fontWeight="bold">{feedback.value}</Typography>
           </Box>
         </Box>
       </Fade>
 
-      {/* 2. Thanh hiển thị Độ sáng/Âm lượng khi Pan */}
+      {/* Chỉ báo Volume/Brightness */}
       <Fade in={feedback.visible && (feedback.type === "brightness" || feedback.type === "volume")}>
-        <Box sx={{
-          position: "absolute", top: "20%",
-          left: feedback.side === "left-bar" ? "10%" : "90%",
-          transform: "translateX(-50%)",
-          display: "flex", flexDirection: "column", alignItems: "center",
-          bgcolor: "rgba(0,0,0,0.6)", p: 1, borderRadius: 2, zIndex: 11
-        }}>
-          {feedback.type === "brightness" ? <Brightness6 /> : <VolumeUp />}
-          <Typography variant="caption">{feedback.value}</Typography>
+        <Box sx={{ position: "absolute", top: "15%", left: feedback.side === "left-bar" ? "10%" : "90%", transform: "translateX(-50%)", bgcolor: "rgba(0,0,0,0.7)", p: 1.5, borderRadius: 2, display: "flex", flexDirection: "column", alignItems: "center", zIndex: 11 }}>
+          {feedback.type === "brightness" ? <Brightness6 color="inherit" /> : <VolumeUp color="inherit" />}
+          <Typography variant="caption" sx={{color: "white", mt: 0.5}}>{feedback.value}</Typography>
         </Box>
       </Fade>
 
-      {/* 3. Toolbar (Nổi lên khi chạm) */}
+      {/* Bottom Toolbar */}
       <Fade in={showToolbar}>
-        <Box sx={{
-          position: "absolute", bottom: 0, left: 0, right: 0,
-          background: "linear-gradient(transparent, rgba(0,0,0,0.9))",
-          p: 2, zIndex: 12
-        }}>
-          <Typography variant="subtitle1" sx={{ mb: 1, ml: 1 }}>{title}</Typography>
-          
-          <LinearProgress 
-            variant="determinate" value={progress} 
-            sx={{ height: 4, mb: 2, borderRadius: 2, bgcolor: "rgba(255,255,255,0.3)", "& .MuiLinearProgress-bar": { bgcolor: "red" } }} 
-          />
-          
-          <Stack direction="row" justifyContent="space-between" alignItems="center">
-            <Stack direction="row" spacing={1}>
-              <IconButton onClick={togglePlay} color="inherit">
-                {isPlaying ? <Pause /> : <PlayArrow />}
-              </IconButton>
-              <IconButton color="inherit" onClick={onVideoEnd}>
-                <SkipNext />
-              </IconButton>
-            </Stack>
-
-            <Stack direction="row" spacing={1}>
-              <IconButton color="inherit" onClick={handleFullscreen}>
-                <Fullscreen />
-              </IconButton>
-            </Stack>
+        <Box sx={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "linear-gradient(transparent, rgba(0,0,0,0.9))", p: 2, zIndex: 12 }}>
+          <LinearProgress variant="determinate" value={progress} sx={{ height: 4, mb: 2, bgcolor: "rgba(255,255,255,0.3)", "& .MuiLinearProgress-bar": { bgcolor: "red" } }} />
+          <Stack direction="row" justifyContent="space-between">
+            <Typography variant="caption">{title}</Typography>
+            <IconButton size="small" color="inherit" onClick={() => containerRef.current.requestFullscreen()}><Fullscreen /></IconButton>
           </Stack>
         </Box>
       </Fade>
 
-      {/* CSS cho Hiệu ứng */}
       <style>{`
-        @keyframes sonar {
-          0% { transform: scale(0.8); opacity: 1; }
-          100% { transform: scale(1.8); opacity: 0; }
-        }
-        .sonar-wave {
-          width: 120px; height: 120px;
-          background: rgba(255,255,255,0.2);
-          border-radius: 50%;
-          display: flex; flex-direction: column;
-          align-items: center; justify-content: center;
-          animation: sonar 0.6s ease-out;
-        }
+        @keyframes sonar { 0% { transform: scale(0.7); opacity: 1; } 100% { transform: scale(1.6); opacity: 0; } }
+        .sonar-wave { width: 140px; height: 140px; background: rgba(255,255,255,0.2); border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; animation: sonar 0.6s ease-out; color: white; backdrop-filter: blur(2px); }
       `}</style>
     </Box>
   );
