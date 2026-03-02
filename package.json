@@ -20,6 +20,8 @@
     "react-slick": "^0.31.0",
     "video.js": "^8.23.7",
     "videojs-mobile-ui": "^1.2.2",
+    "videojs-seek-buttons": "^3.0.1",
+    "videojs-shuttle-controls": "^1.2.7",
     "videojs-vtt-thumbnails": "^0.0.13",
     "swiper": "^12.1.0"
   },
