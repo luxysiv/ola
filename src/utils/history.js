@@ -1,4 +1,3 @@
-//src/utils/history.js
 const KEY = "movie_history";
 
 export const getHistory = () => {
@@ -7,21 +6,26 @@ export const getHistory = () => {
 };
 
 export const saveHistoryItem = (item) => {
+  if (!item?.slug) return;
+
   let history = getHistory();
 
-  // bỏ bản ghi cũ nếu có
+  // ❗ Chỉ giữ 1 record duy nhất cho mỗi phim
   history = history.filter(m => m.slug !== item.slug);
 
-  // thêm lên đầu danh sách
-  history.unshift(item);
+  history.unshift({
+    ...item,
+    episode: String(item.episode), // normalize
+    currentTime: Math.floor(item.currentTime || 0),
+    updatedAt: Date.now()
+  });
 
-  // giới hạn số lượng
   history = history.slice(0, 50);
 
   localStorage.setItem(KEY, JSON.stringify(history));
 };
 
-export const removeHistoryItem = slug => {
+export const removeHistoryItem = (slug) => {
   const history = getHistory().filter(m => m.slug !== slug);
   localStorage.setItem(KEY, JSON.stringify(history));
 };
