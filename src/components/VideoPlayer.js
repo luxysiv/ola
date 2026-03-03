@@ -4,25 +4,10 @@ import "video.js/dist/video-js.css";
 
 import "videojs-mobile-ui";
 import "videojs-mobile-ui/dist/videojs-mobile-ui.css";
-
-import vttThumbnails from "videojs-vtt-thumbnails";
-import "videojs-vtt-thumbnails/dist/videojs-vtt-thumbnails.css";
 import "videojs-shuttle-controls";
 
 import { Card, Box, Typography } from "@mui/material";
 import { saveHistoryItem } from "../utils/history";
-
-// ✅ REGISTER PLUGIN THỦ CÔNG
-videojs.registerPlugin("vttThumbnails", vttThumbnails);
-
-const isSafari = () => {
-  const ua = window.navigator.userAgent;
-  return /^((?!chrome|android).)*safari/i.test(ua);
-};
-
-const isIOS = () => {
-  return /iPad|iPhone|iPod/.test(navigator.userAgent);
-};
 
 const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
   const videoRef = useRef(null);
@@ -30,45 +15,23 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
   const hasResumed = useRef(false);
 
   useEffect(() => {
-    hasResumed.current = false;
-  }, [src]);
-
-  useEffect(() => {
     if (!videoRef.current || !src) return;
 
-    const videoElement = videoRef.current;
-    const proxiedUrl = `/proxy-stream?url=${encodeURIComponent(src)}`;
-
-    // =============================
-    // CLEANUP OLD PLAYER
-    // =============================
     if (playerRef.current) {
       playerRef.current.dispose();
       playerRef.current = null;
     }
 
-    videoElement.pause();
-    videoElement.removeAttribute("src");
-    videoElement.load();
+    const proxiedUrl = `/proxy-stream?url=${encodeURIComponent(src)}`;
 
-    // =============================
-    // INIT VIDEOJS
-    // =============================
-    const player = videojs(videoElement, {
+    const player = videojs(videoRef.current, {
       autoplay: true,
       controls: true,
-      responsive: true,
-      fluid: true,
       preload: "auto",
       playsinline: true,
-      html5: {
-        vhs: {
-          overrideNative: !isSafari(),
-          enableLowInitialPlaylist: true,
-          smoothQualityChange: true
-        },
-        nativeAudioTracks: isSafari(),
-        nativeVideoTracks: isSafari()
+      aspectRatio: "16:9",
+      controlBar: {
+        volumePanel: { inline: false }
       },
       sources: [
         {
@@ -80,23 +43,14 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
 
     playerRef.current = player;
 
-    // =============================
-    // MOBILE UI (Disable iOS native fullscreen conflict)
-    // =============================
-    if (!isIOS()) {
-      player.mobileUi({
-        fullscreen: {
-          enterOnRotate: true
-        },
-        touchControls: {
-          seekSeconds: 10
-        }
-      });
-    }
+    // Mobile UI
+    player.mobileUi({
+      touchControls: {
+        seekSeconds: 10
+      }
+    });
 
-    // =============================
-    // SHUTTLE CONTROLS
-    // =============================
+    // Shuttle
     player.ready(() => {
       player.shuttleControls({
         forward: 10,
@@ -104,18 +58,7 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
       });
     });
 
-    // =============================
-    // THUMBNAIL PREVIEW
-    // =============================
-    player.ready(() => {
-      player.vttThumbnails({
-        src: "/thumbnails.vtt"
-      });
-    });
-
-    // =============================
-    // RESUME TIME
-    // =============================
+    // Resume
     player.on("loadedmetadata", () => {
       if (movieInfo?.currentTime && !hasResumed.current) {
         player.currentTime(movieInfo.currentTime);
@@ -123,67 +66,17 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
       }
     });
 
-    // =============================
-    // AUTO NEXT
-    // =============================
     player.on("ended", () => {
       onVideoEnd && onVideoEnd();
     });
 
-    // =============================
-    // AUTO HIDE CONTROLS
-    // =============================
-    let hideTimeout;
-
-    const showControls = () => {
-      if (!player || player.isDisposed()) return;
-
-      player.controlBar.removeClass("vjs-hidden");
-
-      clearTimeout(hideTimeout);
-      hideTimeout = setTimeout(() => {
-        if (!player.paused()) {
-          player.controlBar.addClass("vjs-hidden");
-        }
-      }, 3000);
-    };
-
-    player.on("mousemove", showControls);
-    player.on("touchstart", showControls);
-    player.on("play", showControls);
-
-    // =============================
-    // ERROR AUTO RETRY (STREAM FAIL SAFE)
-    // =============================
-    player.on("error", () => {
-      console.log("Stream error → retrying...");
-      setTimeout(() => {
-        if (!player.isDisposed()) {
-          player.src({
-            src: proxiedUrl,
-            type: "application/x-mpegURL"
-          });
-          player.play().catch(() => {});
-        }
-      }, 2000);
-    });
-
     return () => {
-      clearTimeout(hideTimeout);
-
       if (player && !player.isDisposed()) {
         player.dispose();
       }
-
-      videoElement.pause();
-      videoElement.removeAttribute("src");
-      videoElement.load();
     };
   }, [src]);
 
-  // =============================
-  // SAVE HISTORY (5s)
-  // =============================
   useEffect(() => {
     if (!movieInfo) return;
 
@@ -202,26 +95,53 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
   }, [movieInfo]);
 
   return (
-    <Card sx={{ mt: 2, bgcolor: "#1a1a1a", color: "white" }}>
+    <Card sx={{ mt: 2, bgcolor: "#000", color: "white" }}>
+      {/* Inject style trực tiếp */}
+      <style>
+        {`
+          .vjs-youtube-style .vjs-control-bar {
+            background: linear-gradient(
+              to top,
+              rgba(0,0,0,0.8),
+              rgba(0,0,0,0)
+            );
+          }
+
+          .vjs-youtube-style .vjs-big-play-button {
+            border-radius: 50%;
+            background-color: rgba(0,0,0,0.6);
+            border: none;
+            width: 80px;
+            height: 80px;
+            line-height: 80px;
+            font-size: 40px;
+          }
+
+          .vjs-youtube-style .vjs-play-progress {
+            background-color: #ff0000;
+          }
+
+          .vjs-youtube-style .vjs-volume-level {
+            background-color: #ff0000;
+          }
+
+          .vjs-youtube-style .vjs-control-bar .vjs-control:hover {
+            color: #ff0000;
+          }
+        `}
+      </style>
+
       {title && (
         <Box sx={{ p: 2 }}>
           <Typography variant="h6">{title}</Typography>
         </Box>
       )}
 
-      <Box
-        sx={{
-          width: "100%",
-          maxWidth: 960,
-          margin: "0 auto",
-          bgcolor: "black"
-        }}
-      >
+      <Box sx={{ maxWidth: 960, margin: "0 auto" }}>
         <div data-vjs-player>
           <video
             ref={videoRef}
-            className="video-js vjs-big-play-centered"
-            playsInline
+            className="video-js vjs-big-play-centered vjs-youtube-style"
           />
         </div>
       </Box>
