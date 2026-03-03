@@ -5,17 +5,14 @@ import "video.js/dist/video-js.css";
 import "videojs-mobile-ui";
 import "videojs-mobile-ui/dist/videojs-mobile-ui.css";
 
-// Import và đăng ký plugin vtt-thumbnails đúng cách
-import vttThumbnails from 'videojs-vtt-thumbnails';
-import "videojs-vtt-thumbnails/dist/videojs-vtt-thumbnails.css";
-
-// Đăng ký plugin với Video.js
-vttThumbnails(videojs);
-
+import vttThumbnails from "videojs-vtt-thumbnails";
 import "videojs-shuttle-controls";
 
 import { Card, Box, Typography } from "@mui/material";
 import { saveHistoryItem } from "../utils/history";
+
+// ✅ REGISTER PLUGIN THỦ CÔNG
+videojs.registerPlugin("vttThumbnails", vttThumbnails);
 
 const isSafari = () => {
   const ua = window.navigator.userAgent;
@@ -41,7 +38,9 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
     const videoElement = videoRef.current;
     const proxiedUrl = `/proxy-stream?url=${encodeURIComponent(src)}`;
 
-    // Cleanup old player
+    // =============================
+    // CLEANUP OLD PLAYER
+    // =============================
     if (playerRef.current) {
       playerRef.current.dispose();
       playerRef.current = null;
@@ -51,7 +50,9 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
     videoElement.removeAttribute("src");
     videoElement.load();
 
-    // Initialize Video.js
+    // =============================
+    // INIT VIDEOJS
+    // =============================
     const player = videojs(videoElement, {
       autoplay: true,
       controls: true,
@@ -78,72 +79,42 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
 
     playerRef.current = player;
 
-    // Mobile UI (Disable iOS native fullscreen conflict)
+    // =============================
+    // MOBILE UI (Disable iOS native fullscreen conflict)
+    // =============================
     if (!isIOS()) {
-      player.ready(() => {
-        if (player.mobileUi) {
-          player.mobileUi({
-            fullscreen: {
-              enterOnRotate: true
-            },
-            touchControls: {
-              seekSeconds: 10
-            }
-          });
+      player.mobileUi({
+        fullscreen: {
+          enterOnRotate: true
+        },
+        touchControls: {
+          seekSeconds: 10
         }
       });
     }
 
-    // Shuttle Controls
+    // =============================
+    // SHUTTLE CONTROLS
+    // =============================
     player.ready(() => {
-      if (player.shuttleControls) {
-        player.shuttleControls({
-          forward: 10,
-          back: 10
-        });
-      }
+      player.shuttleControls({
+        forward: 10,
+        back: 10
+      });
     });
 
-    // Initialize Thumbnails - QUAN TRỌNG: Khởi tạo sau khi player ready
+    // =============================
+    // THUMBNAIL PREVIEW
+    // =============================
     player.ready(() => {
-      // Kiểm tra plugin đã được đăng ký chưa
-      console.log('Checking vttThumbnails plugin:', typeof player.vttThumbnails);
-      
-      if (typeof player.vttThumbnails === 'function') {
-        try {
-          player.vttThumbnails({
-            src: "/thumbnails.vtt",
-            debug: true, // Bật debug để xem lỗi
-            crossOrigin: "anonymous",
-            showTimestamp: true // Hiển thị thời gian
-          });
-          console.log('vttThumbnails initialized successfully');
-        } catch (error) {
-          console.error('Error initializing vttThumbnails:', error);
-        }
-      } else {
-        console.error('vttThumbnails plugin not found. Available plugins:', Object.keys(player));
-        
-        // Thử đăng ký lại plugin nếu chưa có
-        if (!videojs.getPlugin('vttThumbnails')) {
-          console.log('Registering plugin again...');
-          const vttThumbnailsPlugin = require('videojs-vtt-thumbnails');
-          videojs.registerPlugin('vttThumbnails', vttThumbnailsPlugin);
-          
-          // Thử khởi tạo lại
-          setTimeout(() => {
-            if (typeof player.vttThumbnails === 'function') {
-              player.vttThumbnails({
-                src: "/thumbnails.vtt",
-                debug: true
-              });
-            }
-          }, 100);
-        }
-      }
+      player.vttThumbnails({
+        src: "/thumbnails.vtt"
+      });
     });
 
-    // Resume time
+    // =============================
+    // RESUME TIME
+    // =============================
     player.on("loadedmetadata", () => {
       if (movieInfo?.currentTime && !hasResumed.current) {
         player.currentTime(movieInfo.currentTime);
@@ -151,12 +122,16 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
       }
     });
 
-    // Auto next
+    // =============================
+    // AUTO NEXT
+    // =============================
     player.on("ended", () => {
       onVideoEnd && onVideoEnd();
     });
 
-    // Auto hide controls
+    // =============================
+    // AUTO HIDE CONTROLS
+    // =============================
     let hideTimeout;
 
     const showControls = () => {
@@ -176,7 +151,9 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
     player.on("touchstart", showControls);
     player.on("play", showControls);
 
-    // Error auto retry
+    // =============================
+    // ERROR AUTO RETRY (STREAM FAIL SAFE)
+    // =============================
     player.on("error", () => {
       console.log("Stream error → retrying...");
       setTimeout(() => {
@@ -201,15 +178,17 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
       videoElement.removeAttribute("src");
       videoElement.load();
     };
-  }, [src, movieInfo, onVideoEnd]);
+  }, [src]);
 
-  // Save history (5s)
+  // =============================
+  // SAVE HISTORY (5s)
+  // =============================
   useEffect(() => {
     if (!movieInfo) return;
 
     const interval = setInterval(() => {
       const player = playerRef.current;
-      if (player && !player.paused() && !player.isDisposed()) {
+      if (player && !player.paused()) {
         saveHistoryItem({
           ...movieInfo,
           currentTime: player.currentTime(),
