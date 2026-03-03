@@ -6,6 +6,7 @@ import "videojs-mobile-ui";
 import "videojs-mobile-ui/dist/videojs-mobile-ui.css";
 
 import "videojs-vtt-thumbnails";
+import "videojs-shuttle-controls";
 
 import { Card, Box, Typography } from "@mui/material";
 import { saveHistoryItem } from "../utils/history";
@@ -15,6 +16,7 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
   const playerRef = useRef(null);
   const hasResumed = useRef(false);
 
+  // Reset resume flag khi đổi video
   useEffect(() => {
     hasResumed.current = false;
   }, [src]);
@@ -24,8 +26,10 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
 
     const proxiedUrl = `/proxy-stream?url=${encodeURIComponent(src)}`;
 
+    // Dispose player cũ nếu có
     if (playerRef.current) {
       playerRef.current.dispose();
+      playerRef.current = null;
     }
 
     const player = videojs(videoRef.current, {
@@ -33,6 +37,7 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
       controls: true,
       responsive: true,
       fluid: true,
+      preload: "auto",
       sources: [
         {
           src: proxiedUrl,
@@ -43,7 +48,9 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
 
     playerRef.current = player;
 
-    // ✅ MOBILE DOUBLE TAP (CHUẨN)
+    // =============================
+    // ✅ MOBILE DOUBLE TAP
+    // =============================
     player.mobileUi({
       fullscreen: {
         enterOnRotate: true
@@ -54,18 +61,35 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
       }
     });
 
+    // =============================
+    // ✅ SHUTTLE CONTROLS (±10s)
+    // =============================
+    player.ready(() => {
+      player.shuttleControls({
+        forward: 10,
+        back: 10
+      });
+    });
+
+    // =============================
     // ✅ THUMBNAIL PREVIEW
+    // =============================
     player.ready(() => {
       player.vttThumbnails({
         src: "/thumbnails.vtt"
       });
     });
 
+    // =============================
+    // ✅ VIDEO ENDED
+    // =============================
     player.on("ended", () => {
       onVideoEnd && onVideoEnd();
     });
 
-    // Resume time
+    // =============================
+    // ✅ RESUME TIME
+    // =============================
     player.on("loadedmetadata", () => {
       if (movieInfo?.currentTime && !hasResumed.current) {
         player.currentTime(movieInfo.currentTime);
@@ -73,10 +97,14 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
       }
     });
 
+    // =============================
     // ✅ AUTO HIDE CONTROLS (3s)
+    // =============================
     let hideTimeout;
 
     const showControls = () => {
+      if (!player || player.isDisposed()) return;
+
       player.controlBar.removeClass("vjs-hidden");
 
       clearTimeout(hideTimeout);
@@ -92,11 +120,16 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
     player.on("play", showControls);
 
     return () => {
-      player.dispose();
+      clearTimeout(hideTimeout);
+      if (player && !player.isDisposed()) {
+        player.dispose();
+      }
     };
   }, [src]);
 
-  // Save history mỗi 5s
+  // =============================
+  // ✅ SAVE HISTORY MỖI 5s
+  // =============================
   useEffect(() => {
     if (!movieInfo) return;
 
