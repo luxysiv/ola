@@ -6,6 +6,7 @@ import "videojs-mobile-ui";
 import "videojs-mobile-ui/dist/videojs-mobile-ui.css";
 
 import vttThumbnails from "videojs-vtt-thumbnails";
+import "videojs-vtt-thumbnails/dist/videojs-vtt-thumbnails.css";
 import "videojs-shuttle-controls";
 
 import { Card, Box, Typography } from "@mui/material";
