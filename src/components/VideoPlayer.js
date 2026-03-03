@@ -2,7 +2,7 @@ import React, { useRef, useEffect } from "react";
 import videojs from "video.js";
 
 import "video.js/dist/video-js.css";
-import "@videojs/themes/dist/sea/index.css";
+import "@videojs/themes/dist/city/index.css";
 
 import "videojs-mobile-ui";
 import "videojs-mobile-ui/dist/videojs-mobile-ui.css";
@@ -35,9 +35,6 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
     const videoElement = videoRef.current;
     const proxiedUrl = `/proxy-stream?url=${encodeURIComponent(src)}`;
 
-    // =============================
-    // CLEANUP PLAYER
-    // =============================
     if (playerRef.current) {
       playerRef.current.dispose();
       playerRef.current = null;
@@ -47,9 +44,6 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
     videoElement.removeAttribute("src");
     videoElement.load();
 
-    // =============================
-    // INIT VIDEOJS
-    // =============================
     const player = videojs(videoElement, {
       autoplay: true,
       controls: true,
@@ -57,7 +51,7 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
       fluid: true,
       preload: "auto",
       playsinline: true,
-      inactivityTimeout: 3000, // auto hide giống Youtube
+      inactivityTimeout: 3000,
       controlBar: {
         volumePanel: { inline: false }
       },
@@ -80,9 +74,6 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
 
     playerRef.current = player;
 
-    // =============================
-    // MOBILE UI (double tap seek)
-    // =============================
     if (!isIOS()) {
       player.mobileUi({
         fullscreen: {
@@ -94,9 +85,6 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
       });
     }
 
-    // =============================
-    // SHUTTLE CONTROLS
-    // =============================
     player.ready(() => {
       player.shuttleControls({
         forward: 10,
@@ -104,9 +92,6 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
       });
     });
 
-    // =============================
-    // RESUME TIME
-    // =============================
     player.on("loadedmetadata", () => {
       if (movieInfo?.currentTime && !hasResumed.current) {
         player.currentTime(movieInfo.currentTime);
@@ -114,16 +99,10 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
       }
     });
 
-    // =============================
-    // AUTO NEXT
-    // =============================
     player.on("ended", () => {
       onVideoEnd && onVideoEnd();
     });
 
-    // =============================
-    // ERROR AUTO RETRY
-    // =============================
     player.on("error", () => {
       console.log("Stream error → retrying...");
       setTimeout(() => {
@@ -148,9 +127,6 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
     };
   }, [src]);
 
-  // =============================
-  // SAVE HISTORY (5s)
-  // =============================
   useEffect(() => {
     if (!movieInfo) return;
 
@@ -187,7 +163,7 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
         <div data-vjs-player>
           <video
             ref={videoRef}
-            className="video-js vjs-theme-sea vjs-big-play-centered"
+            className="video-js vjs-theme-city vjs-big-play-centered"
             playsInline
           />
         </div>
