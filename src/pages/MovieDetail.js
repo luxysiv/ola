@@ -134,7 +134,7 @@ function MovieDetail() {
       {src ? (
         <>
           <VideoPlayer
-            key={src}
+           // key={src}
             src={src}
             title={
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
