@@ -14,3 +14,16 @@ nav a {
 nav a:hover {
   text-decoration: underline;
 }
+
+/* Tắt khung viền khi player được focus */
+.video-js:focus,
+.vjs-tech:focus,
+.video-js .vjs-tech:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Tắt khung viền bao quanh toàn bộ player container */
+[data-vjs-player]:focus-within {
+  outline: none !important;
+}
