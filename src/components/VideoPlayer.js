@@ -4,11 +4,15 @@ import "video.js/dist/video-js.css";
 
 import "videojs-mobile-ui";
 import "videojs-mobile-ui/dist/videojs-mobile-ui.css";
-import "videojs-vtt-thumbnails";
+
+import vttThumbnails from "videojs-vtt-thumbnails";
 import "videojs-shuttle-controls";
 
 import { Card, Box, Typography } from "@mui/material";
 import { saveHistoryItem } from "../utils/history";
+
+// ✅ REGISTER PLUGIN THỦ CÔNG
+videojs.registerPlugin("vttThumbnails", vttThumbnails);
 
 const isSafari = () => {
   const ua = window.navigator.userAgent;
