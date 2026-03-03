@@ -1,6 +1,8 @@
 import React, { useRef, useEffect } from "react";
 import videojs from "video.js";
+
 import "video.js/dist/video-js.css";
+import "@videojs/themes/dist/sea/index.css";
 
 import "videojs-mobile-ui";
 import "videojs-mobile-ui/dist/videojs-mobile-ui.css";
@@ -9,29 +11,64 @@ import "videojs-shuttle-controls";
 import { Card, Box, Typography } from "@mui/material";
 import { saveHistoryItem } from "../utils/history";
 
+const isSafari = () => {
+  const ua = window.navigator.userAgent;
+  return /^((?!chrome|android).)*safari/i.test(ua);
+};
+
+const isIOS = () => {
+  return /iPad|iPhone|iPod/.test(navigator.userAgent);
+};
+
 const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
   const videoRef = useRef(null);
   const playerRef = useRef(null);
   const hasResumed = useRef(false);
 
   useEffect(() => {
+    hasResumed.current = false;
+  }, [src]);
+
+  useEffect(() => {
     if (!videoRef.current || !src) return;
 
+    const videoElement = videoRef.current;
+    const proxiedUrl = `/proxy-stream?url=${encodeURIComponent(src)}`;
+
+    // =============================
+    // CLEANUP PLAYER
+    // =============================
     if (playerRef.current) {
       playerRef.current.dispose();
       playerRef.current = null;
     }
 
-    const proxiedUrl = `/proxy-stream?url=${encodeURIComponent(src)}`;
+    videoElement.pause();
+    videoElement.removeAttribute("src");
+    videoElement.load();
 
-    const player = videojs(videoRef.current, {
+    // =============================
+    // INIT VIDEOJS
+    // =============================
+    const player = videojs(videoElement, {
       autoplay: true,
       controls: true,
+      responsive: true,
+      fluid: true,
       preload: "auto",
       playsinline: true,
-      aspectRatio: "16:9",
+      inactivityTimeout: 3000, // auto hide giống Youtube
       controlBar: {
         volumePanel: { inline: false }
+      },
+      html5: {
+        vhs: {
+          overrideNative: !isSafari(),
+          enableLowInitialPlaylist: true,
+          smoothQualityChange: true
+        },
+        nativeAudioTracks: isSafari(),
+        nativeVideoTracks: isSafari()
       },
       sources: [
         {
@@ -43,14 +80,23 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
 
     playerRef.current = player;
 
-    // Mobile UI
-    player.mobileUi({
-      touchControls: {
-        seekSeconds: 10
-      }
-    });
+    // =============================
+    // MOBILE UI (double tap seek)
+    // =============================
+    if (!isIOS()) {
+      player.mobileUi({
+        fullscreen: {
+          enterOnRotate: true
+        },
+        touchControls: {
+          seekSeconds: 10
+        }
+      });
+    }
 
-    // Shuttle
+    // =============================
+    // SHUTTLE CONTROLS
+    // =============================
     player.ready(() => {
       player.shuttleControls({
         forward: 10,
@@ -58,7 +104,9 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
       });
     });
 
-    // Resume
+    // =============================
+    // RESUME TIME
+    // =============================
     player.on("loadedmetadata", () => {
       if (movieInfo?.currentTime && !hasResumed.current) {
         player.currentTime(movieInfo.currentTime);
@@ -66,17 +114,43 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
       }
     });
 
+    // =============================
+    // AUTO NEXT
+    // =============================
     player.on("ended", () => {
       onVideoEnd && onVideoEnd();
+    });
+
+    // =============================
+    // ERROR AUTO RETRY
+    // =============================
+    player.on("error", () => {
+      console.log("Stream error → retrying...");
+      setTimeout(() => {
+        if (!player.isDisposed()) {
+          player.src({
+            src: proxiedUrl,
+            type: "application/x-mpegURL"
+          });
+          player.play().catch(() => {});
+        }
+      }, 2000);
     });
 
     return () => {
       if (player && !player.isDisposed()) {
         player.dispose();
       }
+
+      videoElement.pause();
+      videoElement.removeAttribute("src");
+      videoElement.load();
     };
   }, [src]);
 
+  // =============================
+  // SAVE HISTORY (5s)
+  // =============================
   useEffect(() => {
     if (!movieInfo) return;
 
@@ -95,53 +169,26 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
   }, [movieInfo]);
 
   return (
-    <Card sx={{ mt: 2, bgcolor: "#000", color: "white" }}>
-      {/* Inject style trực tiếp */}
-      <style>
-        {`
-          .vjs-youtube-style .vjs-control-bar {
-            background: linear-gradient(
-              to top,
-              rgba(0,0,0,0.8),
-              rgba(0,0,0,0)
-            );
-          }
-
-          .vjs-youtube-style .vjs-big-play-button {
-            border-radius: 50%;
-            background-color: rgba(0,0,0,0.6);
-            border: none;
-            width: 80px;
-            height: 80px;
-            line-height: 80px;
-            font-size: 40px;
-          }
-
-          .vjs-youtube-style .vjs-play-progress {
-            background-color: #ff0000;
-          }
-
-          .vjs-youtube-style .vjs-volume-level {
-            background-color: #ff0000;
-          }
-
-          .vjs-youtube-style .vjs-control-bar .vjs-control:hover {
-            color: #ff0000;
-          }
-        `}
-      </style>
-
+    <Card sx={{ mt: 2, bgcolor: "#1a1a1a", color: "white" }}>
       {title && (
         <Box sx={{ p: 2 }}>
           <Typography variant="h6">{title}</Typography>
         </Box>
       )}
 
-      <Box sx={{ maxWidth: 960, margin: "0 auto" }}>
+      <Box
+        sx={{
+          width: "100%",
+          maxWidth: 960,
+          margin: "0 auto",
+          bgcolor: "black"
+        }}
+      >
         <div data-vjs-player>
           <video
             ref={videoRef}
-            className="video-js vjs-big-play-centered vjs-youtube-style"
+            className="video-js vjs-theme-sea vjs-big-play-centered"
+            playsInline
           />
         </div>
       </Box>
