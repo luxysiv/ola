@@ -13,6 +13,7 @@ import SkipNextIcon from '@mui/icons-material/SkipNext';
 import SkipPreviousIcon from '@mui/icons-material/SkipPrevious';
 import ReplayIcon from '@mui/icons-material/Replay';
 
+// Hàm chuẩn hóa slug để so sánh server và tập phim
 const normalize = (str = "") =>
   str.toString().toLowerCase()
     .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
@@ -42,10 +43,12 @@ function MovieDetail() {
         setMovie(movieData);
         setServers(epData);
 
+        // Lấy lịch sử xem của phim này
         const history = getHistory();
         const historyItem = history.find(m => m.slug === slug);
         if (historyItem) setResumeData(historyItem);
 
+        // Xử lý query params từ URL (?Server+1&tap-1)
         const searchPath = decodeURIComponent(location.search.substring(1));
         const parts = searchPath.split("&").filter(Boolean);
 
@@ -53,12 +56,14 @@ function MovieDetail() {
           let serverSlug = parts[0];
           let epSlug = parts[1];
 
+          // Tìm server tương ứng
           let svIdx = epData.findIndex(s => normalize(s.server_name) === serverSlug);
           if (svIdx === -1) svIdx = 0;
           setCurrentServer(svIdx);
 
           const listEp = epData[svIdx]?.server_data || [];
 
+          // Tìm tập phim tương ứng
           if (epSlug) {
             let epIdx = listEp.findIndex(e => normalize(e.name) === epSlug);
             if (epIdx === -1) epIdx = 0;
@@ -82,7 +87,10 @@ function MovieDetail() {
     const svSlug = normalize(servers[currentServer]?.server_name);
     const epSlug = normalize(ep.name);
 
+    // Cập nhật tạm thời resumeData để VideoPlayer nhận diện currentTime mới nhất
     setResumeData(prev => ({ ...prev, episode: ep.name, currentTime: time }));
+    
+    // Điều hướng URL để useEffect ở trên bắt được và setSrc
     navigate(`/phim/${slug}?${svSlug}&${epSlug}`);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [servers, currentServer, slug, navigate]);
@@ -117,6 +125,7 @@ function MovieDetail() {
     );
   }
 
+  // Ưu tiên thumb_url cho banner vì là ảnh ngang (landscape), poster_url thường là ảnh dọc (portrait)
   const banner = movie?.thumb_url || movie?.poster_url;
 
   return (
@@ -160,6 +169,7 @@ function MovieDetail() {
               slug,
               name: movie?.name,
               poster: movie?.poster_url,
+              thumb: movie?.thumb_url, // Lấy thêm thumb_url để làm Poster trong VideoPlayer
               episode: currentEp,
               server: servers[currentServer]?.server_name,
               currentTime: (resumeData?.episode === currentEp) ? resumeData.currentTime : 0
@@ -256,7 +266,6 @@ function MovieDetail() {
             {movie.episode_current && <Chip label={movie.episode_current} color="success" variant="outlined" size="small" />}
           </Stack>
 
-          {/* Bảng thông tin bổ sung có click trang quốc gia và thể loại */}
           <Box sx={{ bgcolor: "background.paper", p: 2, borderRadius: 2, mb: 3, border: "1px solid rgba(255,255,255,0.1)" }}>
             <Grid container spacing={2}>
               <Grid item xs={12} sm={6}>
