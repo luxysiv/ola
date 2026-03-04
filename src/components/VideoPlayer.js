@@ -56,7 +56,7 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
           <MediaProvider>
             {movieInfo?.poster && (
               <Poster
-                src={movieInfo.poster}
+                src={movieInfo.thumb}
                 alt={movieInfo.name}
                 className="vds-poster"
               />
