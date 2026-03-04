@@ -8,7 +8,9 @@
     "@mui/icons-material": "^7.3.7",
     "@mui/material": "^7.3.7",
     "@videojs/themes": "^1.0.1",
+    "@vidstack/react": "^0.6.15",
     "axios": "^1.13.5",
+    "lucide-react": "^0.576.0",
     "postcss-flexbugs-fixes": "^5.0.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
@@ -16,11 +18,11 @@
     "react-router-dom": "^7.13.0",
     "react-scripts": "5.0.1",
     "react-slick": "^0.31.0",
+    "swiper": "^12.1.0",
     "video.js": "^8.23.7",
     "videojs-mobile-ui": "^1.2.2",
     "videojs-shuttle-controls": "^1.2.7",
-    "videojs-vtt-thumbnails": "^0.0.13",
-    "swiper": "^12.1.0"
+    "videojs-vtt-thumbnails": "^0.0.13"
   },
   "scripts": {
     "start": "react-scripts start",
