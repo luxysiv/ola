@@ -2,7 +2,6 @@ import React, { useEffect, useRef } from 'react';
 import { MediaPlayer, MediaProvider, Poster } from '@vidstack/react';
 import { DefaultVideoLayout, defaultLayoutIcons } from '@vidstack/react/player/layouts/default';
 
-// Import CSS mặc định của Vidstack
 import '@vidstack/react/player/styles/default/theme.css';
 import '@vidstack/react/player/styles/default/layouts/video.css';
 
@@ -15,10 +14,8 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
   
   useEffect(() => {
     if (!movieInfo) return;
-    
     const interval = setInterval(() => {
       const activePlayer = player.current;
-      // Vidstack sử dụng thuộc tính .paused trên instance của player
       if (activePlayer && !activePlayer.paused) {
         saveHistoryItem({
           ...movieInfo,
@@ -27,45 +24,18 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
         });
       }
     }, 10000);
-    
     return () => clearInterval(interval);
   }, [movieInfo]);
 
   return (
-    <Card 
-      sx={{ 
-        mt: 2, 
-        bgcolor: "#000", 
-        color: "white", 
-        overflow: "hidden", 
-        border: "none", 
-        boxShadow: 0 
-      }}
-    >
+    <Card sx={{ mt: 2, bgcolor: "#000", color: "white", boxShadow: 0 }}>
       {title && (
         <Box sx={{ p: 2, bgcolor: "#1a1a1a" }}>
           <Typography variant="h6">{title}</Typography>
         </Box>
       )}
 
-      <Box 
-        sx={{ 
-          width: "100%", 
-          maxWidth: 960, 
-          margin: "0 auto", 
-          bgcolor: "black",
-          // Thay thế cho thẻ <style> bằng cách sử dụng sx prop để can thiệp CSS global/local
-          "& media-player": {
-            outline: "none !important",
-            boxShadow: "none !important",
-          },
-          "& .vds-time-group": {
-            display: "flex !important",
-            alignItems: "center",
-            gap: "2px",
-          }
-        }}
-      >
+      <Box sx={{ width: "100%", maxWidth: 960, margin: "0 auto" }}>
         <MediaPlayer
           ref={player}
           src={proxiedUrl}
@@ -79,10 +49,9 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
               player.current.currentTime = movieInfo.currentTime;
             }
           }}
-          style={{ outline: 'none', border: 'none' }}
         >
           <MediaProvider>
-            {movieInfo?.poster && (
+            {movieInfo?.thumb && (
               <Poster
                 src={movieInfo.thumb}
                 alt={movieInfo.name}
@@ -91,9 +60,8 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
             )}
           </MediaProvider>
 
-          <DefaultVideoLayout 
-            icons={defaultLayoutIcons} 
-          />
+          {/* Dùng layout mặc định hoàn toàn */}
+          <DefaultVideoLayout icons={defaultLayoutIcons} />
         </MediaPlayer>
       </Box>
     </Card>
