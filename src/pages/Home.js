@@ -239,13 +239,13 @@ function Home() {
         <meta name="description" content="Trang chủ KKPhim, cập nhật phim mới nhất, phim hành động, phim bộ, phim lẻ chất lượng cao Vietsub." />
       </Helmet>
 
+      {/* Banner Phim mới */}
+      <BannerSection title="Phim mới cập nhật" link="/phim-moi-cap-nhat" movies={latest} />
+
       {/* Section Lịch sử */}
       {history.length > 0 && (
         <HorizontalSection title="Tiếp tục xem" link="/lich-su" movies={history} isHistory={true} />
       )}
-
-      {/* Banner Phim mới */}
-      <BannerSection title="Phim mới cập nhật" link="/phim-moi-cap-nhat" movies={latest} />
 
       {/* Các Category khác */}
       <HorizontalSection title="Phim Hành Động" link="/the-loai/hanh-dong" movies={hanhDong} />
