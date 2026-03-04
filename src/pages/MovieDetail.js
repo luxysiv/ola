@@ -125,9 +125,7 @@ function MovieDetail() {
     );
   }
 
-  // Ưu tiên thumb_url cho banner vì là ảnh ngang (landscape), poster_url thường là ảnh dọc (portrait)
-  // const banner = movie?.thumb_url || movie?.poster_url;
-  const banner = movie?.poster_url;
+  const banner = movie?.thumb_url || movie?.poster_url;
 
   return (
     <Container sx={{ mt: 2, mb: 5 }}>
@@ -170,7 +168,7 @@ function MovieDetail() {
               slug,
               name: movie?.name,
               poster: movie?.poster_url,
-              thumb: movie?.thumb_url, // Lấy thêm thumb_url để làm Poster trong VideoPlayer
+              thumb: movie?.thumb_url,
               episode: currentEp,
               server: servers[currentServer]?.server_name,
               currentTime: (resumeData?.episode === currentEp) ? resumeData.currentTime : 0
