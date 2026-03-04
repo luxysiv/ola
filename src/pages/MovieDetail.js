@@ -126,7 +126,8 @@ function MovieDetail() {
   }
 
   // Ưu tiên thumb_url cho banner vì là ảnh ngang (landscape), poster_url thường là ảnh dọc (portrait)
-  const banner = movie?.thumb_url || movie?.poster_url;
+  // const banner = movie?.thumb_url || movie?.poster_url;
+  const banner = movie?.poster_url;
 
   return (
     <Container sx={{ mt: 2, mb: 5 }}>
