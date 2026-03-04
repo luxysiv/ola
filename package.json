@@ -12,6 +12,7 @@
     "axios": "^1.13.5",
     "hls.js": "^1.6.15",
     "lucide-react": "^0.576.0",
+    "postcss-flexbugs-fixes": "^5.0.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-helmet-async": "^2.0.5",
