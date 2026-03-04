@@ -1,9 +1,11 @@
 import React, { useEffect, useRef } from 'react';
+// 1. Thay đổi cách import MediaPlayer và các thành phần chính
 import { MediaPlayer, MediaProvider, Poster } from '@vidstack/react';
 
-// Sử dụng đường dẫn chuẩn của Vidstack v1+
+// 2. SỬA LỖI BUILD: Import trực tiếp từ đường dẫn đã được export chính thức
 import { DefaultVideoLayout, defaultLayoutIcons } from '@vidstack/react/player/layouts/default';
 
+// 3. Import CSS (Giữ nguyên)
 import '@vidstack/react/player/styles/default/theme.css';
 import '@vidstack/react/player/styles/default/layouts/video.css';
 
@@ -29,7 +31,11 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
 
   return (
     <Card sx={{ mt: 2, bgcolor: "#000", border: "none", boxShadow: 0 }}>
-      {title && <Box sx={{ p: 2, bgcolor: "#1a1a1a", color: "white" }}>{title}</Box>}
+      {title && (
+        <Box sx={{ p: 2, bgcolor: "#1a1a1a", color: "white" }}>
+          <Typography variant="h6">{title}</Typography>
+        </Box>
+      )}
       
       <Box sx={{ width: "100%", bgcolor: "black" }}>
         <MediaPlayer
@@ -45,13 +51,22 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
               player.current.currentTime = movieInfo.currentTime;
             }
           }}
+          style={{ outline: 'none' }}
         >
           <MediaProvider>
-            {movieInfo?.poster && <Poster src={movieInfo.poster} className="vds-poster" />}
+            {movieInfo?.poster && (
+              <Poster src={movieInfo.poster} alt={movieInfo.name} className="vds-poster" />
+            )}
           </MediaProvider>
+          {/* Layout này sẽ tự động handle các icon và thanh progress bar */}
           <DefaultVideoLayout icons={defaultLayoutIcons} />
         </MediaPlayer>
       </Box>
+
+      <style jsx global>{`
+        .vds-time-group { display: flex !important; }
+        media-player:focus { outline: none !important; }
+      `}</style>
     </Card>
   );
 };
