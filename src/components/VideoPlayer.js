@@ -1,45 +1,57 @@
-import React, { useEffect, useRef } from 'react';
-// 1. Thay đổi cách import MediaPlayer và các thành phần chính
-import { MediaPlayer, MediaProvider, Poster } from '@vidstack/react';
+import React, { useEffect, useRef } from "react";
+import {
+  MediaPlayer,
+  MediaProvider,
+  Poster,
+  DefaultVideoLayout,
+  defaultLayoutIcons,
+} from "@vidstack/react";
 
-// 2. SỬA LỖI BUILD: Import trực tiếp từ đường dẫn đã được export chính thức
-import { DefaultVideoLayout, defaultLayoutIcons } from '@vidstack/react/player/layouts/default';
-
-// 3. Import CSS (Giữ nguyên)
-import '@vidstack/react/player/styles/default/theme.css';
-import '@vidstack/react/player/styles/default/layouts/video.css';
+import "@vidstack/react/styles/default/theme.css";
+import "@vidstack/react/styles/default/layouts/video.css";
 
 import { Card, Box, Typography } from "@mui/material";
 import { saveHistoryItem } from "../utils/history";
 
 const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
-  const player = useRef(null);
+  const playerRef = useRef(null);
 
+  // Lưu lịch sử xem mỗi 10 giây
   useEffect(() => {
     if (!movieInfo) return;
+
     const interval = setInterval(() => {
-      if (player.current && !player.current.paused) {
-        saveHistoryItem({
-          ...movieInfo,
-          currentTime: Math.floor(player.current.currentTime),
-          updatedAt: Date.now()
-        });
-      }
+      const player = playerRef.current;
+      if (!player || player.paused) return;
+
+      saveHistoryItem({
+        ...movieInfo,
+        currentTime: Math.floor(player.currentTime),
+        updatedAt: Date.now(),
+      });
     }, 10000);
+
     return () => clearInterval(interval);
   }, [movieInfo]);
 
   return (
-    <Card sx={{ mt: 2, bgcolor: "#000", border: "none", boxShadow: 0 }}>
+    <Card
+      sx={{
+        mt: 2,
+        bgcolor: "#000",
+        border: "none",
+        boxShadow: 0,
+      }}
+    >
       {title && (
         <Box sx={{ p: 2, bgcolor: "#1a1a1a", color: "white" }}>
           <Typography variant="h6">{title}</Typography>
         </Box>
       )}
-      
+
       <Box sx={{ width: "100%", bgcolor: "black" }}>
         <MediaPlayer
-          ref={player}
+          ref={playerRef}
           src={src}
           viewType="video"
           streamType="on-demand"
@@ -47,25 +59,37 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
           autoplay
           onEnded={onVideoEnd}
           onCanPlay={() => {
-            if (movieInfo?.currentTime > 0 && player.current) {
-              player.current.currentTime = movieInfo.currentTime;
+            const player = playerRef.current;
+            if (movieInfo?.currentTime > 0 && player) {
+              player.currentTime = movieInfo.currentTime;
             }
           }}
-          style={{ outline: 'none' }}
+          style={{ width: "100%", aspectRatio: "16/9" }}
         >
           <MediaProvider>
             {movieInfo?.poster && (
-              <Poster src={movieInfo.poster} alt={movieInfo.name} className="vds-poster" />
+              <Poster
+                src={movieInfo.poster}
+                alt={movieInfo.name}
+                className="vds-poster"
+              />
             )}
           </MediaProvider>
-          {/* Layout này sẽ tự động handle các icon và thanh progress bar */}
+
+          {/* Layout mặc định đã xử lý progress, controls, icons */}
           <DefaultVideoLayout icons={defaultLayoutIcons} />
         </MediaPlayer>
       </Box>
 
+      {/* Fix outline & UI nhỏ */}
       <style jsx global>{`
-        .vds-time-group { display: flex !important; }
-        media-player:focus { outline: none !important; }
+        media-player:focus {
+          outline: none !important;
+        }
+
+        .vds-time-group {
+          display: flex !important;
+        }
       `}</style>
     </Card>
   );
