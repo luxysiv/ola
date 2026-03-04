@@ -12,6 +12,7 @@ import { saveHistoryItem } from "../utils/history";
 
 const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
   const player = useRef(null);
+  const proxiedUrl = useMemo(() => `/proxy-stream?url=${encodeURIComponent(src)}`, [src]);
 
   useEffect(() => {
     if (!movieInfo) return;
@@ -39,7 +40,7 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
       <Box sx={{ width: "100%", maxWidth: 960, margin: "0 auto", bgcolor: "black" }}>
         <MediaPlayer
           ref={player}
-          src={src}
+          src={proxiedUrl}
           viewType="video"
           streamType="on-demand"
           playsInline
