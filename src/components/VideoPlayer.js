@@ -2,11 +2,11 @@ import React, { useEffect, useRef } from 'react';
 import { MediaPlayer, MediaProvider, Poster } from '@vidstack/react';
 import { DefaultVideoLayout } from '@vidstack/react/player/layouts/default';
 
-// Import CSS bắt buộc
+// Import CSS
 import '@vidstack/react/player/styles/default/theme.css';
 import '@vidstack/react/player/styles/default/layouts/video.css';
 
-// Import Icons từ thư viện Vidstack
+// Sửa lại tên các Icon cho đúng chuẩn export của @vidstack/react/icons
 import { 
   PlayIcon, 
   PauseIcon, 
@@ -19,10 +19,10 @@ import {
   SeekForward10Icon, 
   SeekBackward10Icon,
   SettingsIcon,
-  CaptionOnIcon,
-  CaptionOffIcon,
-  PipEnterIcon,
-  PipExitIcon
+  ClosedCaptionsIcon,      // Thay cho CaptionOnIcon
+  ClosedCaptionsOnIcon,    // Thêm nếu cần phân biệt
+  PictureInPictureIcon,    // Thay cho PipEnterIcon
+  PictureInPictureExitIcon // Thay cho PipExitIcon
 } from '@vidstack/react/icons';
 
 import { Card, Box, Typography } from "@mui/material";
@@ -30,11 +30,9 @@ import { saveHistoryItem } from "../utils/history";
 
 const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
   const player = useRef(null);
-  
-  // Proxy URL để tránh lỗi CORS khi stream
   const proxiedUrl = `/proxy-stream?url=${encodeURIComponent(src)}`;
   
-  // Cấu hình bộ Icon tùy chỉnh
+  // Cấu hình bộ Icon tùy chỉnh với tên biến đã sửa
   const customIcons = {
     PlayButton: {
       Play: PlayIcon,
@@ -56,22 +54,19 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
     },
     Menu: {
       Settings: SettingsIcon,
-      ArrowLeft: SettingsIcon, // Có thể thay bằng icon mũi tên nếu muốn
     },
     CaptionButton: {
-      On: CaptionOnIcon,
-      Off: CaptionOffIcon,
+      On: ClosedCaptionsOnIcon,
+      Off: ClosedCaptionsIcon,
     },
     PIPButton: {
-      Enter: PipEnterIcon,
-      Exit: PipExitIcon,
+      Enter: PictureInPictureIcon,
+      Exit: PictureInPictureExitIcon,
     }
   };
 
   useEffect(() => {
     if (!movieInfo) return;
-
-    // Lưu lịch sử xem mỗi 10 giây
     const interval = setInterval(() => {
       const activePlayer = player.current;
       if (activePlayer && !activePlayer.paused) {
@@ -82,21 +77,18 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
         });
       }
     }, 10000);
-
     return () => clearInterval(interval);
   }, [movieInfo]);
 
   return (
     <Card sx={{ mt: 2, bgcolor: "#000", color: "white", boxShadow: 0, borderRadius: 2, overflow: 'hidden' }}>
       {title && (
-        <Box sx={{ p: 2, bgcolor: "#1a1a1a", borderBottom: "1px solid #333" }}>
-          <Typography variant="h6" sx={{ fontSize: '1.1rem', fontWeight: 500 }}>
-            {title}
-          </Typography>
+        <Box sx={{ p: 2, bgcolor: "#1a1a1a" }}>
+          <Typography variant="h6" sx={{ fontSize: '1.1rem' }}>{title}</Typography>
         </Box>
       )}
 
-      <Box sx={{ width: "100%", maxWidth: 1200, margin: "0 auto", position: 'relative' }}>
+      <Box sx={{ width: "100%", maxWidth: 1200, margin: "0 auto" }}>
         <MediaPlayer
           ref={player}
           src={proxiedUrl}
@@ -106,29 +98,18 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
           autoplay
           onEnded={onVideoEnd}
           onCanPlay={() => {
-            // Resume lại thời điểm đã xem trước đó
             if (movieInfo?.currentTime > 0 && player.current) {
               player.current.currentTime = movieInfo.currentTime;
             }
           }}
-          style={{ backgroundColor: '#000' }}
         >
           <MediaProvider>
             {movieInfo?.thumb && (
-              <Poster
-                src={movieInfo.thumb}
-                alt={movieInfo.name}
-                className="vds-poster"
-                style={{ objectFit: 'cover' }}
-              />
+              <Poster src={movieInfo.thumb} alt={movieInfo.name} className="vds-poster" />
             )}
           </MediaProvider>
 
-          {/* Sử dụng DefaultVideoLayout với bộ icon đã tùy chỉnh */}
-          <DefaultVideoLayout 
-            icons={customIcons} 
-            breakpoints={{ small: 576 }} // Tối ưu hiển thị trên mobile
-          />
+          <DefaultVideoLayout icons={customIcons} />
         </MediaPlayer>
       </Box>
     </Card>
