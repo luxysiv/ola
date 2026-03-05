@@ -1,28 +1,18 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useMemo } from 'react';
 import { MediaPlayer, MediaProvider, Poster } from '@vidstack/react';
-import { DefaultVideoLayout } from '@vidstack/react/player/layouts/default';
+import { DefaultVideoLayout, defaultLayoutIcons } from '@vidstack/react/player/layouts/default';
 
 // Import CSS
 import '@vidstack/react/player/styles/default/theme.css';
 import '@vidstack/react/player/styles/default/layouts/video.css';
 
-// Sửa lại tên các Icon cho đúng chuẩn export của @vidstack/react/icons
+// Import các Icon bạn muốn thay đổi
 import { 
   PlayIcon, 
   PauseIcon, 
-  ReplayIcon, 
-  MuteIcon, 
-  VolumeHighIcon, 
-  VolumeLowIcon,
-  FullscreenIcon, 
-  FullscreenExitIcon, 
-  SeekForward10Icon, 
-  SeekBackward10Icon,
-  SettingsIcon,
-  ClosedCaptionsIcon,      // Thay cho CaptionOnIcon
-  ClosedCaptionsOnIcon,    // Thêm nếu cần phân biệt
-  PictureInPictureIcon,    // Thay cho PipEnterIcon
-  PictureInPictureExitIcon // Thay cho PipExitIcon
+  ReplayIcon,
+  SeekForward10Icon,
+  SeekBackward10Icon
 } from '@vidstack/react/icons';
 
 import { Card, Box, Typography } from "@mui/material";
@@ -32,38 +22,22 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
   const player = useRef(null);
   const proxiedUrl = `/proxy-stream?url=${encodeURIComponent(src)}`;
   
-  // Cấu hình bộ Icon tùy chỉnh với tên biến đã sửa
-  const customIcons = {
+  // Dùng useMemo để merge icon, tránh render lại không cần thiết
+  // Cách này đảm bảo tất cả các icon 'Default' vẫn tồn tại từ bộ gốc
+  const customIcons = useMemo(() => ({
+    ...defaultLayoutIcons,
     PlayButton: {
+      ...defaultLayoutIcons.PlayButton,
       Play: PlayIcon,
       Pause: PauseIcon,
       Replay: ReplayIcon,
     },
-    VolumeButton: {
-      Mute: MuteIcon,
-      Low: VolumeLowIcon,
-      High: VolumeHighIcon,
-    },
-    FullscreenButton: {
-      Enter: FullscreenIcon,
-      Exit: FullscreenExitIcon,
-    },
     SeekButton: {
+      ...defaultLayoutIcons.SeekButton,
       Forward: SeekForward10Icon,
       Backward: SeekBackward10Icon,
     },
-    Menu: {
-      Settings: SettingsIcon,
-    },
-    CaptionButton: {
-      On: ClosedCaptionsOnIcon,
-      Off: ClosedCaptionsIcon,
-    },
-    PIPButton: {
-      Enter: PictureInPictureIcon,
-      Exit: PictureInPictureExitIcon,
-    }
-  };
+  }), []);
 
   useEffect(() => {
     if (!movieInfo) return;
@@ -109,6 +83,7 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
             )}
           </MediaProvider>
 
+          {/* Truyền object đã được merge an toàn */}
           <DefaultVideoLayout icons={customIcons} />
         </MediaPlayer>
       </Box>
