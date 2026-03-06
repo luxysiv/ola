@@ -10,7 +10,7 @@ import "@vidstack/react/player/styles/default/layouts/video.css";
 
 import { Card, Box, Typography } from "@mui/material";
 // Giả định file utils của bạn vẫn giữ nguyên
-// import { saveHistoryItem } from "../utils/history";
+import { saveHistoryItem } from "../utils/history";
 
 const SeekArrows = ({ direction }) => (
   <Box sx={{ 
