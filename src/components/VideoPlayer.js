@@ -9,9 +9,17 @@ import "@vidstack/react/player/styles/default/theme.css";
 import "@vidstack/react/player/styles/default/layouts/video.css";
 
 import { Card, Box, Typography } from "@mui/material";
-// Giả định file utils của bạn vẫn giữ nguyên
-import { saveHistoryItem } from "../utils/history";
 
+// --- CẤU HÌNH CUSTOM ICONS ---
+const None = () => null;
+const customIcons = {
+  ...defaultLayoutIcons, // Giữ lại các icon cơ bản nếu muốn, hoặc bỏ dòng này để dùng None hoàn toàn
+  AirPlayButton: { Default: None, Connecting: None, Connected: None },
+  GoogleCastButton: { Default: None, Connecting: None, Connected: None },
+  // Bạn có thể thêm các icon None khác từ danh sách của bạn ở đây...
+};
+
+// --- COMPONENT ICON TUA (YOUTUBE STYLE) ---
 const SeekArrows = ({ direction }) => (
   <Box sx={{ 
     display: 'flex', 
@@ -45,21 +53,9 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
 
   const proxiedUrl = `/proxy-stream?url=${encodeURIComponent(src)}`;
 
-  // Lưu lịch sử xem
-  useEffect(() => {
-    if (!movieInfo) return;
-    const interval = setInterval(() => {
-      const activePlayer = player.current;
-      if (activePlayer && !activePlayer.paused) {
-        // saveHistoryItem({ ...movieInfo, currentTime: Math.floor(activePlayer.currentTime), updatedAt: Date.now() });
-      }
-    }, 10000);
-    return () => clearInterval(interval);
-  }, [movieInfo]);
-
-  // Xử lý NHẤN GIỮ ĐỂ X2
+  // Xử lý NHẤN GIỮ ĐỂ X2 (Fix lỗi tự ngắt)
   const handlePointerDown = (e) => {
-    // Chỉ nhận chuột trái hoặc cảm ứng
+    // Chỉ nhận chuột trái hoặc touch
     if (e.button !== 0 && e.pointerType !== 'mouse' && e.pointerType !== 'touch') return;
 
     clearTimeout(holdTimer.current);
@@ -67,14 +63,14 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
       if (player.current) {
         player.current.playbackRate = 2;
         setSpeedOverlay(true);
-        if (navigator.vibrate) navigator.vibrate(40); // Rung nhẹ báo hiệu đã vào mode x2
+        if (navigator.vibrate) navigator.vibrate(40);
       }
-    }, 500); // Đợi 0.5s để phân biệt với Tap/Double Tap
+    }, 500); 
   };
 
-  const stopSpeedUp = () => {
+  const stopSpeedUp = (e) => {
     clearTimeout(holdTimer.current);
-    if (player.current) {
+    if (player.current && player.current.playbackRate !== 1) {
       player.current.playbackRate = 1;
     }
     setSpeedOverlay(false);
@@ -83,13 +79,8 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
   // Xử lý DOUBLE TAP TUA
   const seekVideo = (direction) => {
     if (!player.current) return;
-
     const step = 10;
-    if (direction === "forward") {
-      player.current.currentTime += step;
-    } else {
-      player.current.currentTime -= step;
-    }
+    player.current.currentTime += (direction === "forward" ? step : -step);
 
     setSeekData(prev => ({
       side: direction === "forward" ? "right" : "left",
@@ -120,37 +111,20 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
           autoplay
           crossOrigin
           load="eager"
-          // Gán sự kiện vào player
+          // Gán sự kiện trực tiếp vào Player để bao quát toàn vùng
           onPointerDown={handlePointerDown}
           onPointerUp={stopSpeedUp}
           onPointerCancel={stopSpeedUp}
           onPointerLeave={stopSpeedUp}
           onEnded={onVideoEnd}
           style={{ touchAction: 'none', userSelect: 'none', WebkitUserSelect: 'none' }}
-          onCanPlay={() => {
-            if (movieInfo?.currentTime > 0 && player.current) {
-              player.current.currentTime = movieInfo.currentTime;
-            }
-          }}
         >
-          <MediaProvider>
-            {movieInfo?.thumb && (
-              <Poster src={movieInfo.thumb} alt={movieInfo.name} className="vds-poster" />
-            )}
-          </MediaProvider>
+          <MediaProvider />
 
-          {/* VÙNG TƯƠNG TÁC TUA (Nằm trên video nhưng dưới Controls) */}
+          {/* VÙNG TƯƠNG TÁC TUA (Nằm trên video) */}
           <Box sx={{ position: "absolute", inset: 0, display: "flex", zIndex: 10, pointerEvents: 'none' }}>
-            {/* Cánh trái */}
             <Box 
-              sx={{ 
-                flex: 1, 
-                position: 'relative', 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'center',
-                pointerEvents: 'auto' // Chỉ vùng này nhận double click
-              }} 
+              sx={{ flex: 1, position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'auto' }} 
               onDoubleClick={(e) => { e.stopPropagation(); seekVideo("back"); }}
             >
               {seekData.side === "left" && (
@@ -162,19 +136,10 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
               )}
             </Box>
 
-            {/* Khoảng giữa để pause/play bình thường */}
             <Box sx={{ width: "20%" }} />
 
-            {/* Cánh phải */}
             <Box 
-              sx={{ 
-                flex: 1, 
-                position: 'relative', 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'center',
-                pointerEvents: 'auto'
-              }} 
+              sx={{ flex: 1, position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'auto' }} 
               onDoubleClick={(e) => { e.stopPropagation(); seekVideo("forward"); }}
             >
               {seekData.side === "right" && (
@@ -187,74 +152,44 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
             </Box>
           </Box>
 
-          {/* NHÃN TỐC ĐỘ 2X */}
+          {/* HIỂN THỊ TỐC ĐỘ 2X */}
           {speedOverlay && (
-            <Box
-              sx={{
-                position: "absolute",
-                top: 20,
-                left: "50%",
-                transform: "translateX(-50%)",
-                bgcolor: "rgba(0,0,0,0.5)",
-                backdropFilter: 'blur(4px)',
-                px: 2, py: 0.5,
-                borderRadius: 4,
-                zIndex: 20,
-                pointerEvents: 'none',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 1
-              }}
-            >
-              <Typography variant="body2" sx={{ fontWeight: 'bold', letterSpacing: 1 }}>
-                2X Tốc độ phát ⚡
-              </Typography>
+            <Box sx={{
+              position: "absolute", top: 20, left: "50%", transform: "translateX(-50%)",
+              bgcolor: "rgba(0,0,0,0.5)", backdropFilter: 'blur(4px)',
+              px: 2, py: 0.5, borderRadius: 4, zIndex: 20, pointerEvents: 'none'
+            }}>
+              <Typography variant="body2" sx={{ fontWeight: 'bold' }}>2X Tốc độ phát ⚡</Typography>
             </Box>
           )}
 
-          <DefaultVideoLayout icons={defaultLayoutIcons} />
+          {/* LAYOUT VỚI CUSTOM ICONS CỦA BẠN */}
+          <DefaultVideoLayout icons={customIcons} />
         </MediaPlayer>
       </Box>
 
       <style>
         {`
         .seek-overlay-box {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          z-index: 11;
-          pointer-events: none;
-          width: 100%;
-          height: 100%;
+          display: flex; flex-direction: column; align-items: center; justify-content: center;
+          z-index: 11; pointer-events: none; width: 100%; height: 100%;
         }
-
         .ripple-bg {
-          position: absolute;
-          width: 140%;
-          height: 100%;
+          position: absolute; width: 140%; height: 100%;
           background: radial-gradient(circle, rgba(255,255,255,0.15) 0%, transparent 70%);
-          border-radius: 50%;
-          animation: rippleEffect 0.7s ease-out forwards;
+          border-radius: 50%; animation: rippleEffect 0.7s ease-out forwards;
         }
-
         .left .ripple-bg { right: 0; transform: translateX(30%); }
         .right .ripple-bg { left: 0; transform: translateX(-30%); }
 
         @keyframes rippleEffect {
-          0% { opacity: 0; transform: scale(0.5) translateY(0); }
+          0% { opacity: 0; transform: scale(0.5); }
           50% { opacity: 1; }
-          100% { opacity: 0; transform: scale(1.2) translateY(0); }
+          100% { opacity: 0; transform: scale(1.2); }
         }
-
         @keyframes arrowsBlink {
           0%, 100% { opacity: 0.2; }
           50% { opacity: 1; }
-        }
-
-        /* Tối ưu UI trên Mobile */
-        .vds-video-layout {
-          --video-skip-size: 40px;
         }
         `}
       </style>
