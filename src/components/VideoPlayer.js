@@ -15,16 +15,16 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
   const player = useRef(null);
 
   const holdTimeout = useRef(null);
-  const tapTimeout = useRef(null);
-
+  const seekTimer = useRef(null);
   const stackSeek = useRef(0);
 
   const [speedOverlay, setSpeedOverlay] = useState(false);
   const [seekOverlay, setSeekOverlay] = useState(null);
+  const [ripple, setRipple] = useState(null);
 
   const proxiedUrl = `/proxy-stream?url=${encodeURIComponent(src)}`;
 
-  // lưu lịch sử
+  // save history
   useEffect(() => {
     if (!movieInfo) return;
 
@@ -43,7 +43,7 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
     return () => clearInterval(interval);
   }, [movieInfo]);
 
-  // giữ để 2x
+  // hold = 2x
   const handlePointerDown = () => {
     holdTimeout.current = setTimeout(() => {
       if (player.current) {
@@ -63,7 +63,7 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
     setSpeedOverlay(false);
   };
 
-  // double tap stack
+  // double tap seek
   const handleDoubleTap = (direction) => {
     if (!player.current) return;
 
@@ -72,16 +72,19 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
     if (direction === "forward") {
       player.current.currentTime += 10;
       setSeekOverlay(`+${stackSeek.current}s`);
+      setRipple("right");
     } else {
       player.current.currentTime -= 10;
       setSeekOverlay(`-${stackSeek.current}s`);
+      setRipple("left");
     }
 
-    clearTimeout(tapTimeout.current);
+    clearTimeout(seekTimer.current);
 
-    tapTimeout.current = setTimeout(() => {
+    seekTimer.current = setTimeout(() => {
       stackSeek.current = 0;
       setSeekOverlay(null);
+      setRipple(null);
     }, 700);
   };
 
@@ -93,7 +96,14 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
         </Box>
       )}
 
-      <Box sx={{ width: "100%", maxWidth: 960, margin: "0 auto", position: "relative" }}>
+      <Box
+        sx={{
+          width: "100%",
+          maxWidth: 960,
+          margin: "0 auto",
+          position: "relative",
+        }}
+      >
         <MediaPlayer
           ref={player}
           src={proxiedUrl}
@@ -101,13 +111,12 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
           streamType="on-demand"
           playsInline
           autoplay
-          seekStep={10}
           load="eager"
           crossOrigin
-          onEnded={onVideoEnd}
           onPointerDown={handlePointerDown}
           onPointerUp={handlePointerUp}
           onPointerLeave={handlePointerUp}
+          onEnded={onVideoEnd}
           onCanPlay={() => {
             if (movieInfo?.currentTime > 0 && player.current) {
               player.current.currentTime = movieInfo.currentTime;
@@ -127,26 +136,61 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
           <DefaultVideoLayout icons={defaultLayoutIcons} />
         </MediaPlayer>
 
-        {/* overlay tốc độ */}
-        {speedOverlay && (
+        {/* tap zones */}
+        <Box
+          sx={{
+            position: "absolute",
+            inset: 0,
+            display: "flex",
+            zIndex: 5,
+            pointerEvents: "none",
+          }}
+        >
+          {/* left 35% */}
+          <Box
+            onDoubleClick={() => handleDoubleTap("backward")}
+            sx={{
+              width: "35%",
+              pointerEvents: "auto",
+            }}
+          />
+
+          {/* center 30% */}
+          <Box
+            sx={{
+              width: "30%",
+            }}
+          />
+
+          {/* right 35% */}
+          <Box
+            onDoubleClick={() => handleDoubleTap("forward")}
+            sx={{
+              width: "35%",
+              pointerEvents: "auto",
+            }}
+          />
+        </Box>
+
+        {/* ripple */}
+        {ripple && (
           <Box
             sx={{
               position: "absolute",
-              top: "45%",
-              left: "50%",
-              transform: "translate(-50%, -50%)",
-              fontSize: 36,
-              fontWeight: "bold",
-              background: "rgba(0,0,0,0.6)",
-              padding: "12px 20px",
-              borderRadius: 2,
+              top: "50%",
+              [ripple === "right" ? "right" : "left"]: "20%",
+              width: 120,
+              height: 120,
+              borderRadius: "50%",
+              background: "rgba(255,255,255,0.25)",
+              transform: "translateY(-50%)",
+              animation: "ripple 0.6s ease",
+              pointerEvents: "none",
             }}
-          >
-            ⚡2×
-          </Box>
+          />
         )}
 
-        {/* overlay seek */}
+        {/* seek overlay */}
         {seekOverlay && (
           <Box
             sx={{
@@ -159,10 +203,31 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
               background: "rgba(0,0,0,0.6)",
               padding: "12px 20px",
               borderRadius: 2,
+              pointerEvents: "none",
               animation: "fadeSeek 0.6s",
             }}
           >
             {seekOverlay}
+          </Box>
+        )}
+
+        {/* speed overlay */}
+        {speedOverlay && (
+          <Box
+            sx={{
+              position: "absolute",
+              top: "45%",
+              left: "50%",
+              transform: "translate(-50%, -50%)",
+              fontSize: 36,
+              fontWeight: "bold",
+              background: "rgba(0,0,0,0.6)",
+              padding: "12px 20px",
+              borderRadius: 2,
+              pointerEvents: "none",
+            }}
+          >
+            ⚡2×
           </Box>
         )}
       </Box>
@@ -173,6 +238,11 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
           0% {opacity:0; transform:translate(-50%,-60%) scale(.8)}
           50% {opacity:1}
           100% {opacity:0; transform:translate(-50%,-40%) scale(1)}
+        }
+
+        @keyframes ripple {
+          0% {transform:translateY(-50%) scale(.3); opacity:.7}
+          100% {transform:translateY(-50%) scale(2); opacity:0}
         }
         `}
       </style>
