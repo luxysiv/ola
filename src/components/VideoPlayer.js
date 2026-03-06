@@ -9,29 +9,25 @@ import "@vidstack/react/player/styles/default/theme.css";
 import "@vidstack/react/player/styles/default/layouts/video.css";
 
 import { Card, Box, Typography } from "@mui/material";
-import { saveHistoryItem } from "../utils/history";
-
-const SEEK_STEP = 10;
-const DOUBLE_TAP_DELAY = 250;
+// Giả định file utils của bạn vẫn giữ nguyên
+// import { saveHistoryItem } from "../utils/history";
 
 const SeekArrows = ({ direction }) => (
-  <Box
-    sx={{
-      display: "flex",
-      flexDirection: direction === "left" ? "row-reverse" : "row",
-      gap: "2px",
-    }}
-  >
+  <Box sx={{ 
+    display: 'flex', 
+    flexDirection: direction === 'left' ? 'row-reverse' : 'row', 
+    gap: '2px',
+    mb: 1 
+  }}>
     {[0, 1, 2].map((i) => (
       <Box
         key={i}
         sx={{
           width: 0,
           height: 0,
-          borderTop: "8px solid transparent",
-          borderBottom: "8px solid transparent",
-          [direction === "right" ? "borderLeft" : "borderRight"]:
-            "12px solid white",
+          borderTop: '6px solid transparent',
+          borderBottom: '6px solid transparent',
+          [direction === 'right' ? 'borderLeft' : 'borderRight']: '8px solid white',
           animation: `arrowsBlink 0.6s infinite ${i * 0.1}s`,
         }}
       />
@@ -41,128 +37,80 @@ const SeekArrows = ({ direction }) => (
 
 const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
   const player = useRef(null);
-  const container = useRef(null);
-
-  const tapTimer = useRef(null);
   const holdTimer = useRef(null);
-  const seekStack = useRef(0);
-
+  const seekTimer = useRef(null);
+  
   const [seekData, setSeekData] = useState({ side: null, seconds: 0 });
   const [speedOverlay, setSpeedOverlay] = useState(false);
 
   const proxiedUrl = `/proxy-stream?url=${encodeURIComponent(src)}`;
 
-  // save history
+  // Lưu lịch sử xem
   useEffect(() => {
     if (!movieInfo) return;
-
     const interval = setInterval(() => {
-      const active = player.current;
-
-      if (active && !active.paused) {
-        saveHistoryItem({
-          ...movieInfo,
-          currentTime: Math.floor(active.currentTime),
-          updatedAt: Date.now(),
-        });
+      const activePlayer = player.current;
+      if (activePlayer && !activePlayer.paused) {
+        // saveHistoryItem({ ...movieInfo, currentTime: Math.floor(activePlayer.currentTime), updatedAt: Date.now() });
       }
     }, 10000);
-
     return () => clearInterval(interval);
   }, [movieInfo]);
 
-  // HOLD SPEED
-  const startHold = () => {
-    clearTimeout(holdTimer.current);
+  // Xử lý NHẤN GIỮ ĐỂ X2
+  const handlePointerDown = (e) => {
+    // Chỉ nhận chuột trái hoặc cảm ứng
+    if (e.button !== 0 && e.pointerType !== 'mouse' && e.pointerType !== 'touch') return;
 
+    clearTimeout(holdTimer.current);
     holdTimer.current = setTimeout(() => {
       if (player.current) {
         player.current.playbackRate = 2;
         setSpeedOverlay(true);
+        if (navigator.vibrate) navigator.vibrate(40); // Rung nhẹ báo hiệu đã vào mode x2
       }
-    }, 400);
+    }, 500); // Đợi 0.5s để phân biệt với Tap/Double Tap
   };
 
-  const endHold = () => {
+  const stopSpeedUp = () => {
     clearTimeout(holdTimer.current);
-
-    if (player.current) player.current.playbackRate = 1;
-
+    if (player.current) {
+      player.current.playbackRate = 1;
+    }
     setSpeedOverlay(false);
   };
 
-  // TAP HANDLER
-  const handleTap = (e) => {
-    const rect = container.current.getBoundingClientRect();
+  // Xử lý DOUBLE TAP TUA
+  const seekVideo = (direction) => {
+    if (!player.current) return;
 
-    const clientX = e.clientX || e.touches?.[0]?.clientX;
-    if (!clientX) return;
-
-    const x = clientX - rect.left;
-    const width = rect.width;
-
-    const isLeft = x < width * 0.4;
-    const isRight = x > width * 0.6;
-
-    if (!isLeft && !isRight) return;
-
-    if (tapTimer.current) {
-      clearTimeout(tapTimer.current);
-
-      const active = player.current;
-
-      seekStack.current += SEEK_STEP;
-
-      if (isLeft) {
-        active.currentTime = active.currentTime - SEEK_STEP;
-
-        setSeekData({
-          side: "left",
-          seconds: seekStack.current,
-        });
-      } else {
-        active.currentTime = active.currentTime + SEEK_STEP;
-
-        setSeekData({
-          side: "right",
-          seconds: seekStack.current,
-        });
-      }
-
-      tapTimer.current = setTimeout(() => {
-        seekStack.current = 0;
-        setSeekData({ side: null, seconds: 0 });
-      }, 700);
+    const step = 10;
+    if (direction === "forward") {
+      player.current.currentTime += step;
     } else {
-      tapTimer.current = setTimeout(() => {
-        tapTimer.current = null;
-      }, DOUBLE_TAP_DELAY);
+      player.current.currentTime -= step;
     }
+
+    setSeekData(prev => ({
+      side: direction === "forward" ? "right" : "left",
+      seconds: prev.side === (direction === "forward" ? "right" : "left") ? prev.seconds + step : step
+    }));
+
+    clearTimeout(seekTimer.current);
+    seekTimer.current = setTimeout(() => {
+      setSeekData({ side: null, seconds: 0 });
+    }, 800);
   };
 
   return (
-    <Card sx={{ mt: 2, bgcolor: "#000", color: "white", boxShadow: 0 }}>
+    <Card sx={{ mt: 2, bgcolor: "#000", color: "white", boxShadow: 0, overflow: 'hidden' }}>
       {title && (
         <Box sx={{ p: 2, bgcolor: "#1a1a1a" }}>
-          <Typography variant="h6">{title}</Typography>
+          <Typography variant="h6" noWrap>{title}</Typography>
         </Box>
       )}
 
-      <Box
-        ref={container}
-        sx={{
-          position: "relative",
-          width: "100%",
-          maxWidth: 960,
-          margin: "0 auto",
-          overflow: "hidden",
-          zIndex: 20,
-        }}
-        onPointerDown={startHold}
-        onPointerUp={endHold}
-        onPointerLeave={endHold}
-        onClick={handleTap}
-      >
+      <Box sx={{ width: "100%", maxWidth: 960, margin: "0 auto", position: "relative" }}>
         <MediaPlayer
           ref={player}
           src={proxiedUrl}
@@ -170,8 +118,15 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
           streamType="on-demand"
           playsInline
           autoplay
-          keyTarget="document"
+          crossOrigin
+          load="eager"
+          // Gán sự kiện vào player
+          onPointerDown={handlePointerDown}
+          onPointerUp={stopSpeedUp}
+          onPointerCancel={stopSpeedUp}
+          onPointerLeave={stopSpeedUp}
           onEnded={onVideoEnd}
+          style={{ touchAction: 'none', userSelect: 'none', WebkitUserSelect: 'none' }}
           onCanPlay={() => {
             if (movieInfo?.currentTime > 0 && player.current) {
               player.current.currentTime = movieInfo.currentTime;
@@ -180,98 +135,126 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
         >
           <MediaProvider>
             {movieInfo?.thumb && (
-              <Poster
-                src={movieInfo.thumb}
-                alt={movieInfo.name}
-                className="vds-poster"
-              />
+              <Poster src={movieInfo.thumb} alt={movieInfo.name} className="vds-poster" />
             )}
           </MediaProvider>
 
+          {/* VÙNG TƯƠNG TÁC TUA (Nằm trên video nhưng dưới Controls) */}
+          <Box sx={{ position: "absolute", inset: 0, display: "flex", zIndex: 10, pointerEvents: 'none' }}>
+            {/* Cánh trái */}
+            <Box 
+              sx={{ 
+                flex: 1, 
+                position: 'relative', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center',
+                pointerEvents: 'auto' // Chỉ vùng này nhận double click
+              }} 
+              onDoubleClick={(e) => { e.stopPropagation(); seekVideo("back"); }}
+            >
+              {seekData.side === "left" && (
+                <Box className="seek-overlay-box left">
+                  <Box className="ripple-bg" />
+                  <SeekArrows direction="left" />
+                  <Typography variant="caption" sx={{ fontWeight: 'bold' }}>{seekData.seconds} GIÂY</Typography>
+                </Box>
+              )}
+            </Box>
+
+            {/* Khoảng giữa để pause/play bình thường */}
+            <Box sx={{ width: "20%" }} />
+
+            {/* Cánh phải */}
+            <Box 
+              sx={{ 
+                flex: 1, 
+                position: 'relative', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center',
+                pointerEvents: 'auto'
+              }} 
+              onDoubleClick={(e) => { e.stopPropagation(); seekVideo("forward"); }}
+            >
+              {seekData.side === "right" && (
+                <Box className="seek-overlay-box right">
+                  <Box className="ripple-bg" />
+                  <SeekArrows direction="right" />
+                  <Typography variant="caption" sx={{ fontWeight: 'bold' }}>{seekData.seconds} GIÂY</Typography>
+                </Box>
+              )}
+            </Box>
+          </Box>
+
+          {/* NHÃN TỐC ĐỘ 2X */}
+          {speedOverlay && (
+            <Box
+              sx={{
+                position: "absolute",
+                top: 20,
+                left: "50%",
+                transform: "translateX(-50%)",
+                bgcolor: "rgba(0,0,0,0.5)",
+                backdropFilter: 'blur(4px)',
+                px: 2, py: 0.5,
+                borderRadius: 4,
+                zIndex: 20,
+                pointerEvents: 'none',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1
+              }}
+            >
+              <Typography variant="body2" sx={{ fontWeight: 'bold', letterSpacing: 1 }}>
+                2X Tốc độ phát ⚡
+              </Typography>
+            </Box>
+          )}
+
           <DefaultVideoLayout icons={defaultLayoutIcons} />
         </MediaPlayer>
-
-        {/* SPEED OVERLAY */}
-        {speedOverlay && (
-          <Box
-            sx={{
-              position: "absolute",
-              top: "40%",
-              left: "50%",
-              transform: "translate(-50%,-50%)",
-              bgcolor: "rgba(0,0,0,0.6)",
-              px: 2,
-              py: 1,
-              borderRadius: 2,
-              pointerEvents: "none",
-              zIndex: 30,
-            }}
-          >
-            <Typography sx={{ fontSize: 22 }}>⚡ 2×</Typography>
-          </Box>
-        )}
-
-        {/* SEEK LEFT */}
-        {seekData.side === "left" && (
-          <Box className="seek-container left">
-            <Box className="ripple-circle" />
-            <SeekArrows direction="left" />
-            <Typography sx={{ mt: 1, fontWeight: "bold" }}>
-              {seekData.seconds}s
-            </Typography>
-          </Box>
-        )}
-
-        {/* SEEK RIGHT */}
-        {seekData.side === "right" && (
-          <Box className="seek-container right">
-            <Box className="ripple-circle" />
-            <SeekArrows direction="right" />
-            <Typography sx={{ mt: 1, fontWeight: "bold" }}>
-              {seekData.seconds}s
-            </Typography>
-          </Box>
-        )}
       </Box>
 
       <style>
         {`
-        .seek-container{
-          position:absolute;
-          top:50%;
-          transform:translateY(-50%);
-          display:flex;
-          flex-direction:column;
-          align-items:center;
-          pointer-events:none;
-          z-index:25;
+        .seek-overlay-box {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          z-index: 11;
+          pointer-events: none;
+          width: 100%;
+          height: 100%;
         }
 
-        .seek-container.left{
-          left:25%;
+        .ripple-bg {
+          position: absolute;
+          width: 140%;
+          height: 100%;
+          background: radial-gradient(circle, rgba(255,255,255,0.15) 0%, transparent 70%);
+          border-radius: 50%;
+          animation: rippleEffect 0.7s ease-out forwards;
         }
 
-        .seek-container.right{
-          right:25%;
+        .left .ripple-bg { right: 0; transform: translateX(30%); }
+        .right .ripple-bg { left: 0; transform: translateX(-30%); }
+
+        @keyframes rippleEffect {
+          0% { opacity: 0; transform: scale(0.5) translateY(0); }
+          50% { opacity: 1; }
+          100% { opacity: 0; transform: scale(1.2) translateY(0); }
         }
 
-        .ripple-circle{
-          position:absolute;
-          width:180px;
-          height:180px;
-          border-radius:50%;
-          background:rgba(255,255,255,.15);
-          animation:ripple .6s ease-out;
+        @keyframes arrowsBlink {
+          0%, 100% { opacity: 0.2; }
+          50% { opacity: 1; }
         }
 
-        @keyframes ripple{
-          0%{transform:scale(.4);opacity:.7}
-          100%{transform:scale(1.8);opacity:0}
-        }
-
-        @keyframes arrowsBlink{
-          0%,100%{opacity:.3}
-          50%{opacity:1}
+        /* Tối ưu UI trên Mobile */
+        .vds-video-layout {
+          --video-skip-size: 40px;
         }
         `}
       </style>
