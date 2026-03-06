@@ -8,33 +8,40 @@ import {
 import "@vidstack/react/player/styles/default/theme.css";
 import "@vidstack/react/player/styles/default/layouts/video.css";
 
+import Replay10Icon from "@mui/icons-material/Replay10";
+import Forward10Icon from "@mui/icons-material/Forward10";
+import SpeedIcon from "@mui/icons-material/Speed";
+
 import { Card, Box, Typography } from "@mui/material";
 import { saveHistoryItem } from "../utils/history";
 
+const SEEK_STEP = 10;
+
 const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
   const player = useRef(null);
-
-  const holdTimer = useRef(null);
-  const seekTimer = useRef(null);
-  const stackSeek = useRef(0);
-
-  const [seekOverlay, setSeekOverlay] = useState(null);
-  const [speedOverlay, setSpeedOverlay] = useState(false);
-  const [ripple, setRipple] = useState(null);
+  const container = useRef(null);
 
   const proxiedUrl = `/proxy-stream?url=${encodeURIComponent(src)}`;
 
-  // save watch history
+  const [seekDisplay, setSeekDisplay] = useState(null);
+  const [seekSide, setSeekSide] = useState(null);
+  const [speedVisible, setSpeedVisible] = useState(false);
+
+  const seekStack = useRef(0);
+  const tapTimeout = useRef(null);
+  const holdTimeout = useRef(null);
+
+  // save history
   useEffect(() => {
     if (!movieInfo) return;
 
     const interval = setInterval(() => {
-      const activePlayer = player.current;
+      const active = player.current;
 
-      if (activePlayer && !activePlayer.paused) {
+      if (active && !active.paused) {
         saveHistoryItem({
           ...movieInfo,
-          currentTime: Math.floor(activePlayer.currentTime),
+          currentTime: Math.floor(active.currentTime),
           updatedAt: Date.now(),
         });
       }
@@ -43,51 +50,62 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
     return () => clearInterval(interval);
   }, [movieInfo]);
 
-  // hold -> 2x speed
-  const handlePointerDown = () => {
-    clearTimeout(holdTimer.current);
-
-    holdTimer.current = setTimeout(() => {
+  // HOLD SPEED
+  const startHold = () => {
+    holdTimeout.current = setTimeout(() => {
       if (player.current) {
         player.current.playbackRate = 2;
-        setSpeedOverlay(true);
+        setSpeedVisible(true);
       }
-    }, 250);
+    }, 350);
   };
 
-  const handlePointerUp = () => {
-    clearTimeout(holdTimer.current);
+  const endHold = () => {
+    clearTimeout(holdTimeout.current);
 
-    if (player.current) {
-      player.current.playbackRate = 1;
-    }
+    if (player.current) player.current.playbackRate = 1;
 
-    setSpeedOverlay(false);
+    setSpeedVisible(false);
   };
 
-  // double tap seek
-  const seekVideo = (direction) => {
-    if (!player.current) return;
+  // DOUBLE TAP SEEK
+  const handleTap = (e) => {
+    const rect = container.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const width = rect.width;
 
-    stackSeek.current += 10;
+    const left = x < width * 0.35;
+    const right = x > width * 0.65;
 
-    if (direction === "forward") {
-      player.current.currentTime += 10;
-      setSeekOverlay(`+${stackSeek.current}s`);
-      setRipple("right");
+    if (!left && !right) return;
+
+    if (tapTimeout.current) {
+      clearTimeout(tapTimeout.current);
+
+      seekStack.current += SEEK_STEP;
+
+      const active = player.current;
+
+      if (left) {
+        active.currentTime -= SEEK_STEP;
+        setSeekSide("left");
+      } else {
+        active.currentTime += SEEK_STEP;
+        setSeekSide("right");
+      }
+
+      setSeekDisplay(seekStack.current);
+
+      tapTimeout.current = setTimeout(() => {
+        seekStack.current = 0;
+        setSeekDisplay(null);
+      }, 800);
     } else {
-      player.current.currentTime -= 10;
-      setSeekOverlay(`-${stackSeek.current}s`);
-      setRipple("left");
+      tapTimeout.current = setTimeout(() => {
+        tapTimeout.current = null;
+        seekStack.current = 0;
+      }, 250);
     }
-
-    clearTimeout(seekTimer.current);
-
-    seekTimer.current = setTimeout(() => {
-      stackSeek.current = 0;
-      setSeekOverlay(null);
-      setRipple(null);
-    }, 700);
   };
 
   return (
@@ -99,11 +117,18 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
       )}
 
       <Box
+        ref={container}
         sx={{
+          position: "relative",
           width: "100%",
           maxWidth: 960,
           margin: "0 auto",
+          overflow: "hidden",
         }}
+        onPointerDown={startHold}
+        onPointerUp={endHold}
+        onPointerLeave={endHold}
+        onClick={handleTap}
       >
         <MediaPlayer
           ref={player}
@@ -112,12 +137,7 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
           streamType="on-demand"
           playsInline
           autoplay
-          crossOrigin
-          load="eager"
-          onPointerDown={handlePointerDown}
-          onPointerUp={handlePointerUp}
-          onPointerCancel={handlePointerUp}
-          onPointerLeave={handlePointerUp}
+          keyTarget="document"
           onEnded={onVideoEnd}
           onCanPlay={() => {
             if (movieInfo?.currentTime > 0 && player.current) {
@@ -135,105 +155,74 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
             )}
           </MediaProvider>
 
-          {/* tap zones */}
+          <DefaultVideoLayout icons={defaultLayoutIcons} />
+        </MediaPlayer>
+
+        {/* HOLD SPEED */}
+        {speedVisible && (
           <Box
             sx={{
               position: "absolute",
-              inset: 0,
+              top: "40%",
+              left: "50%",
+              transform: "translate(-50%,-50%)",
+              background: "rgba(0,0,0,0.6)",
+              padding: "10px 16px",
+              borderRadius: 2,
               display: "flex",
-              zIndex: 5,
+              alignItems: "center",
+              gap: 1,
+              animation: "fadeSeek .25s",
             }}
           >
-            {/* left */}
-            <Box
-              sx={{ width: "35%" }}
-              onDoubleClick={() => seekVideo("back")}
-            />
-
-            {/* center */}
-            <Box sx={{ width: "30%" }} />
-
-            {/* right */}
-            <Box
-              sx={{ width: "35%" }}
-              onDoubleClick={() => seekVideo("forward")}
-            />
+            <SpeedIcon sx={{ fontSize: 30 }} />
+            <Typography sx={{ fontSize: 22 }}>2×</Typography>
           </Box>
+        )}
 
-          {/* ripple animation */}
-          {ripple && (
-            <Box
-              sx={{
-                position: "absolute",
-                top: "50%",
-                [ripple === "right" ? "right" : "left"]: "18%",
-                width: 120,
-                height: 120,
-                borderRadius: "50%",
-                background: "rgba(255,255,255,0.25)",
-                transform: "translateY(-50%)",
-                animation: "ripple .6s ease",
-                pointerEvents: "none",
-              }}
-            />
-          )}
+        {/* SEEK DISPLAY */}
+        {seekDisplay && (
+          <Box
+            sx={{
+              position: "absolute",
+              top: "40%",
+              left: seekSide === "left" ? "25%" : "75%",
+              transform: "translate(-50%,-50%)",
+              background: "rgba(0,0,0,0.55)",
+              padding: "12px 18px",
+              borderRadius: 3,
+              display: "flex",
+              alignItems: "center",
+              gap: 1,
+              pointerEvents: "none",
+              animation: "fadeSeek .25s",
+            }}
+          >
+            {seekSide === "left" ? (
+              <Replay10Icon sx={{ fontSize: 40, opacity: 0.9 }} />
+            ) : (
+              <Forward10Icon sx={{ fontSize: 40, opacity: 0.9 }} />
+            )}
 
-          {/* seek overlay */}
-          {seekOverlay && (
-            <Box
-              sx={{
-                position: "absolute",
-                top: "45%",
-                left: "50%",
-                transform: "translate(-50%, -50%)",
-                fontSize: 34,
-                fontWeight: "bold",
-                background: "rgba(0,0,0,0.6)",
-                padding: "12px 20px",
-                borderRadius: 2,
-                pointerEvents: "none",
-                animation: "fadeSeek .6s",
-              }}
-            >
-              {seekOverlay}
-            </Box>
-          )}
+            <Typography sx={{ fontSize: 24 }}>{seekDisplay}s</Typography>
+          </Box>
+        )}
 
-          {/* speed overlay */}
-          {speedOverlay && (
-            <Box
-              sx={{
-                position: "absolute",
-                top: "45%",
-                left: "50%",
-                transform: "translate(-50%, -50%)",
-                fontSize: 36,
-                fontWeight: "bold",
-                background: "rgba(0,0,0,0.6)",
-                padding: "12px 20px",
-                borderRadius: 2,
-                pointerEvents: "none",
-              }}
-            >
-              ⚡2×
-            </Box>
-          )}
-
-          <DefaultVideoLayout icons={defaultLayoutIcons} />
-        </MediaPlayer>
+        {/* RIPPLE */}
+        <Box className="yt-ripple" />
       </Box>
 
       <style>
         {`
         @keyframes fadeSeek {
-          0% {opacity:0; transform:translate(-50%,-60%) scale(.8)}
-          50% {opacity:1}
-          100% {opacity:0; transform:translate(-50%,-40%) scale(1)}
+          0% {transform:scale(.8);opacity:0}
+          100% {transform:scale(1);opacity:1}
         }
 
-        @keyframes ripple {
-          0% {transform:translateY(-50%) scale(.3); opacity:.7}
-          100% {transform:translateY(-50%) scale(2); opacity:0}
+        .yt-ripple{
+          position:absolute;
+          inset:0;
+          pointer-events:none;
         }
         `}
       </style>
