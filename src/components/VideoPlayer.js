@@ -43,6 +43,12 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
           streamType="on-demand"
           playsInline
           autoplay
+          seekStep={10}
+          pointerGestures={{
+            seek: true,
+            fullscreen: true,
+            speed: true
+          }}
           onEnded={onVideoEnd}
           onCanPlay={() => {
             if (movieInfo?.currentTime > 0 && player.current) {
