@@ -9,7 +9,7 @@ import "@vidstack/react/player/styles/default/theme.css";
 import "@vidstack/react/player/styles/default/layouts/video.css";
 
 import { Card, Box, Typography } from "@mui/material";
-// import { saveHistoryItem } from "../utils/history";
+import { saveHistoryItem } from "../utils/history";
 
 const SeekArrows = ({ direction }) => (
   <Box sx={{ display: 'flex', flexDirection: direction === 'left' ? 'row-reverse' : 'row', gap: '2px', mb: 0.5 }}>
