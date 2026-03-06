@@ -10,17 +10,12 @@ import { saveHistoryItem } from "../utils/history";
 
 const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
   const player = useRef(null);
-  const holdTimeout = useRef(null);
-
   const proxiedUrl = `/proxy-stream?url=${encodeURIComponent(src)}`;
-
-  // Lưu lịch sử xem mỗi 10s
+  
   useEffect(() => {
     if (!movieInfo) return;
-
     const interval = setInterval(() => {
       const activePlayer = player.current;
-
       if (activePlayer && !activePlayer.paused) {
         saveHistoryItem({
           ...movieInfo,
@@ -29,26 +24,8 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
         });
       }
     }, 10000);
-
     return () => clearInterval(interval);
   }, [movieInfo]);
-
-  // giữ để tăng tốc
-  const handlePointerDown = () => {
-    holdTimeout.current = setTimeout(() => {
-      if (player.current) {
-        player.current.playbackRate = 2;
-      }
-    }, 300);
-  };
-
-  const handlePointerUp = () => {
-    clearTimeout(holdTimeout.current);
-
-    if (player.current) {
-      player.current.playbackRate = 1;
-    }
-  };
 
   return (
     <Card sx={{ mt: 2, bgcolor: "#000", color: "white", boxShadow: 0 }}>
@@ -66,13 +43,7 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
           streamType="on-demand"
           playsInline
           autoplay
-          load="eager"
-          crossOrigin
-          seekStep={10}
           onEnded={onVideoEnd}
-          onPointerDown={handlePointerDown}
-          onPointerUp={handlePointerUp}
-          onPointerLeave={handlePointerUp}
           onCanPlay={() => {
             if (movieInfo?.currentTime > 0 && player.current) {
               player.current.currentTime = movieInfo.currentTime;
@@ -89,6 +60,7 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
             )}
           </MediaProvider>
 
+          {/* Dùng layout mặc định hoàn toàn */}
           <DefaultVideoLayout icons={defaultLayoutIcons} />
         </MediaPlayer>
       </Box>
