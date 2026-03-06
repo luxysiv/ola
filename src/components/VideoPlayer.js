@@ -14,17 +14,17 @@ import { saveHistoryItem } from "../utils/history";
 const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
   const player = useRef(null);
 
-  const holdTimeout = useRef(null);
+  const holdTimer = useRef(null);
   const seekTimer = useRef(null);
   const stackSeek = useRef(0);
 
-  const [speedOverlay, setSpeedOverlay] = useState(false);
   const [seekOverlay, setSeekOverlay] = useState(null);
+  const [speedOverlay, setSpeedOverlay] = useState(false);
   const [ripple, setRipple] = useState(null);
 
   const proxiedUrl = `/proxy-stream?url=${encodeURIComponent(src)}`;
 
-  // save history
+  // save watch history
   useEffect(() => {
     if (!movieInfo) return;
 
@@ -43,18 +43,20 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
     return () => clearInterval(interval);
   }, [movieInfo]);
 
-  // hold = 2x
+  // hold -> 2x speed
   const handlePointerDown = () => {
-    holdTimeout.current = setTimeout(() => {
+    clearTimeout(holdTimer.current);
+
+    holdTimer.current = setTimeout(() => {
       if (player.current) {
         player.current.playbackRate = 2;
         setSpeedOverlay(true);
       }
-    }, 300);
+    }, 250);
   };
 
   const handlePointerUp = () => {
-    clearTimeout(holdTimeout.current);
+    clearTimeout(holdTimer.current);
 
     if (player.current) {
       player.current.playbackRate = 1;
@@ -64,7 +66,7 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
   };
 
   // double tap seek
-  const handleDoubleTap = (direction) => {
+  const seekVideo = (direction) => {
     if (!player.current) return;
 
     stackSeek.current += 10;
@@ -101,7 +103,6 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
           width: "100%",
           maxWidth: 960,
           margin: "0 auto",
-          position: "relative",
         }}
       >
         <MediaPlayer
@@ -111,10 +112,11 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
           streamType="on-demand"
           playsInline
           autoplay
-          load="eager"
           crossOrigin
+          load="eager"
           onPointerDown={handlePointerDown}
           onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerUp}
           onPointerLeave={handlePointerUp}
           onEnded={onVideoEnd}
           onCanPlay={() => {
@@ -133,103 +135,92 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
             )}
           </MediaProvider>
 
+          {/* tap zones */}
+          <Box
+            sx={{
+              position: "absolute",
+              inset: 0,
+              display: "flex",
+              zIndex: 5,
+            }}
+          >
+            {/* left */}
+            <Box
+              sx={{ width: "35%" }}
+              onDoubleClick={() => seekVideo("back")}
+            />
+
+            {/* center */}
+            <Box sx={{ width: "30%" }} />
+
+            {/* right */}
+            <Box
+              sx={{ width: "35%" }}
+              onDoubleClick={() => seekVideo("forward")}
+            />
+          </Box>
+
+          {/* ripple animation */}
+          {ripple && (
+            <Box
+              sx={{
+                position: "absolute",
+                top: "50%",
+                [ripple === "right" ? "right" : "left"]: "18%",
+                width: 120,
+                height: 120,
+                borderRadius: "50%",
+                background: "rgba(255,255,255,0.25)",
+                transform: "translateY(-50%)",
+                animation: "ripple .6s ease",
+                pointerEvents: "none",
+              }}
+            />
+          )}
+
+          {/* seek overlay */}
+          {seekOverlay && (
+            <Box
+              sx={{
+                position: "absolute",
+                top: "45%",
+                left: "50%",
+                transform: "translate(-50%, -50%)",
+                fontSize: 34,
+                fontWeight: "bold",
+                background: "rgba(0,0,0,0.6)",
+                padding: "12px 20px",
+                borderRadius: 2,
+                pointerEvents: "none",
+                animation: "fadeSeek .6s",
+              }}
+            >
+              {seekOverlay}
+            </Box>
+          )}
+
+          {/* speed overlay */}
+          {speedOverlay && (
+            <Box
+              sx={{
+                position: "absolute",
+                top: "45%",
+                left: "50%",
+                transform: "translate(-50%, -50%)",
+                fontSize: 36,
+                fontWeight: "bold",
+                background: "rgba(0,0,0,0.6)",
+                padding: "12px 20px",
+                borderRadius: 2,
+                pointerEvents: "none",
+              }}
+            >
+              ⚡2×
+            </Box>
+          )}
+
           <DefaultVideoLayout icons={defaultLayoutIcons} />
         </MediaPlayer>
-
-        {/* tap zones */}
-        <Box
-          sx={{
-            position: "absolute",
-            inset: 0,
-            display: "flex",
-            zIndex: 5,
-            pointerEvents: "none",
-          }}
-        >
-          {/* left 35% */}
-          <Box
-            onDoubleClick={() => handleDoubleTap("backward")}
-            sx={{
-              width: "35%",
-              pointerEvents: "auto",
-            }}
-          />
-
-          {/* center 30% */}
-          <Box
-            sx={{
-              width: "30%",
-            }}
-          />
-
-          {/* right 35% */}
-          <Box
-            onDoubleClick={() => handleDoubleTap("forward")}
-            sx={{
-              width: "35%",
-              pointerEvents: "auto",
-            }}
-          />
-        </Box>
-
-        {/* ripple */}
-        {ripple && (
-          <Box
-            sx={{
-              position: "absolute",
-              top: "50%",
-              [ripple === "right" ? "right" : "left"]: "20%",
-              width: 120,
-              height: 120,
-              borderRadius: "50%",
-              background: "rgba(255,255,255,0.25)",
-              transform: "translateY(-50%)",
-              animation: "ripple 0.6s ease",
-              pointerEvents: "none",
-            }}
-          />
-        )}
-
-        {/* seek overlay */}
-        {seekOverlay && (
-          <Box
-            sx={{
-              position: "absolute",
-              top: "45%",
-              left: "50%",
-              transform: "translate(-50%, -50%)",
-              fontSize: 34,
-              fontWeight: "bold",
-              background: "rgba(0,0,0,0.6)",
-              padding: "12px 20px",
-              borderRadius: 2,
-              pointerEvents: "none",
-              animation: "fadeSeek 0.6s",
-            }}
-          >
-            {seekOverlay}
-          </Box>
-        )}
-
-        {/* speed overlay */}
-        {speedOverlay && (
-          <Box
-            sx={{
-              position: "absolute",
-              top: "45%",
-              left: "50%",
-              transform: "translate(-50%, -50%)",
-              fontSize: 36,
-              fontWeight: "bold",
-              background: "rgba(0,0,0,0.6)",
-              padding: "12px 20px",
-              borderRadius: 2,
-              pointerEvents: "none",
-            }}
-          >
-            ⚡2×
-          </Box>
-        )}
       </Box>
 
       <style>
