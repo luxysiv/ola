@@ -1,10 +1,10 @@
 import React, { useEffect, useRef } from "react";
-import { MediaPlayer, MediaProvider, Poster } from "@vidstack/react";
-import { PlyrLayout } from "@vidstack/react/player/layouts/plyr";
+import { MediaPlayer, MediaProvider, Poster, isMediaProviderAdapter } from "@vidstack/react";
+// 1. Thêm defaultLayoutIcons
+import { defaultLayoutIcons, PlyrLayout } from "@vidstack/react/player/layouts/plyr";
 
 import "@vidstack/react/player/styles/base.css";
 import "@vidstack/react/player/styles/plyr/theme.css";
-import "@vidstack/react/player/styles/plyr/layouts/video.css";
 
 import { Card, Box, Typography } from "@mui/material";
 import { saveHistoryItem } from "../utils/history";
@@ -17,12 +17,12 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
     if (!movieInfo) return;
 
     const interval = setInterval(() => {
+      // 2. Cách lấy currentTime đúng trong Vidstack
       const activePlayer = player.current;
-
-      if (activePlayer && !activePlayer.paused) {
+      if (activePlayer && !activePlayer.state.paused) {
         saveHistoryItem({
           ...movieInfo,
-          currentTime: Math.floor(activePlayer.currentTime),
+          currentTime: Math.floor(activePlayer.state.currentTime),
           updatedAt: Date.now(),
         });
       }
@@ -46,9 +46,9 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
           viewType="video"
           streamType="on-demand"
           playsInline
-          autoplay
           onEnded={onVideoEnd}
-          onCanPlay={() => {
+          // 3. Sử dụng onCanPlay để resume thời gian cũ
+          onCanPlay={(detail) => {
             if (movieInfo?.currentTime > 0 && player.current) {
               player.current.currentTime = movieInfo.currentTime;
             }
@@ -56,11 +56,16 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
         >
           <MediaProvider>
             {movieInfo?.thumb && (
-              <Poster src={movieInfo.thumb} alt={movieInfo.name} />
+              <Poster 
+                className="vds-poster"
+                src={movieInfo.thumb} 
+                alt={movieInfo.name} 
+              />
             )}
           </MediaProvider>
 
-          <PlyrLayout />
+          {/* 4. Truyền icons vào đây */}
+          <PlyrLayout icons={defaultLayoutIcons} />
         </MediaPlayer>
       </Box>
     </Card>
