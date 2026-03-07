@@ -1,12 +1,10 @@
 import React, { useEffect, useRef } from "react";
 import { MediaPlayer, MediaProvider, Poster } from "@vidstack/react";
+import { PlyrLayout } from "@vidstack/react/player/layouts/plyr";
 
-import {
-  PlyrLayout,
-  plyrLayoutIcons
-} from "@vidstack/react/player/layouts/plyr";
-
+import "@vidstack/react/player/styles/base.css";
 import "@vidstack/react/player/styles/plyr/theme.css";
+import "@vidstack/react/player/styles/plyr/layouts/video.css";
 
 import { Card, Box, Typography } from "@mui/material";
 import { saveHistoryItem } from "../utils/history";
@@ -62,12 +60,11 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
             )}
           </MediaProvider>
 
-          {/* Plyr layout */}
-          <PlyrLayout icons={plyrLayoutIcons} />
+          <PlyrLayout />
         </MediaPlayer>
       </Box>
     </Card>
   );
 };
 
-export default VideoPlayer; 
+export default VideoPlayer;
