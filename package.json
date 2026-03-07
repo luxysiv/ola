@@ -7,7 +7,6 @@
     "@emotion/styled": "^11.14.1",
     "@mui/icons-material": "^7.3.7",
     "@mui/material": "^7.3.7",
-    "@videojs/themes": "^1.0.1",
     "@vidstack/react": "^1.12.13",
     "axios": "^1.13.5",
     "hls.js": "^1.6.15",
