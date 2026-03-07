@@ -1,6 +1,10 @@
 import React, { useEffect, useRef } from "react";
 import { MediaPlayer, MediaProvider, Poster } from "@vidstack/react";
-import { PlyrLayout } from "@vidstack/react/player/layouts/plyr";
+
+import {
+  PlyrLayout,
+  plyrLayoutIcons
+} from "@vidstack/react/player/layouts/plyr";
 
 import "@vidstack/react/player/styles/plyr/theme.css";
 
@@ -54,19 +58,16 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
         >
           <MediaProvider>
             {movieInfo?.thumb && (
-              <Poster
-                src={movieInfo.thumb}
-                alt={movieInfo.name}
-              />
+              <Poster src={movieInfo.thumb} alt={movieInfo.name} />
             )}
           </MediaProvider>
 
           {/* Plyr layout */}
-          <PlyrLayout />
+          <PlyrLayout icons={plyrLayoutIcons} />
         </MediaPlayer>
       </Box>
     </Card>
   );
 };
 
-export default VideoPlayer;
+export default VideoPlayer; 
