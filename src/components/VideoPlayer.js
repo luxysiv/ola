@@ -1,9 +1,8 @@
-import React, { useEffect, useRef } from 'react';
-import { MediaPlayer, MediaProvider, Poster } from '@vidstack/react';
-import { DefaultVideoLayout, defaultLayoutIcons } from '@vidstack/react/player/layouts/default';
+import React, { useEffect, useRef } from "react";
+import { MediaPlayer, MediaProvider, Poster } from "@vidstack/react";
+import { PlyrLayout } from "@vidstack/react/player/layouts/plyr";
 
-import '@vidstack/react/player/styles/default/theme.css';
-import '@vidstack/react/player/styles/default/layouts/video.css';
+import "@vidstack/react/player/styles/plyr/theme.css";
 
 import { Card, Box, Typography } from "@mui/material";
 import { saveHistoryItem } from "../utils/history";
@@ -11,19 +10,22 @@ import { saveHistoryItem } from "../utils/history";
 const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
   const player = useRef(null);
   const proxiedUrl = `/proxy-stream?url=${encodeURIComponent(src)}`;
-  
+
   useEffect(() => {
     if (!movieInfo) return;
+
     const interval = setInterval(() => {
       const activePlayer = player.current;
+
       if (activePlayer && !activePlayer.paused) {
         saveHistoryItem({
           ...movieInfo,
           currentTime: Math.floor(activePlayer.currentTime),
-          updatedAt: Date.now()
+          updatedAt: Date.now(),
         });
       }
     }, 10000);
+
     return () => clearInterval(interval);
   }, [movieInfo]);
 
@@ -55,13 +57,12 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
               <Poster
                 src={movieInfo.thumb}
                 alt={movieInfo.name}
-                className="vds-poster"
               />
             )}
           </MediaProvider>
 
-          {/* Dùng layout mặc định hoàn toàn */}
-          <DefaultVideoLayout icons={defaultLayoutIcons} />
+          {/* Plyr layout */}
+          <PlyrLayout />
         </MediaPlayer>
       </Box>
     </Card>
