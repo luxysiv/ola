@@ -1,10 +1,9 @@
-import React, { useEffect, useRef } from "react";
-import { MediaPlayer, MediaProvider, Poster, isMediaProviderAdapter } from "@vidstack/react";
-// 1. Thêm defaultLayoutIcons
-import { defaultLayoutIcons, PlyrLayout } from "@vidstack/react/player/layouts/plyr";
+import React, { useEffect, useRef } from 'react';
+import { MediaPlayer, MediaProvider, Poster } from '@vidstack/react';
+import { DefaultVideoLayout, defaultLayoutIcons } from '@vidstack/react/player/layouts/default';
 
-import "@vidstack/react/player/styles/base.css";
-import "@vidstack/react/player/styles/plyr/theme.css";
+import '@vidstack/react/player/styles/default/theme.css';
+import '@vidstack/react/player/styles/default/layouts/video.css';
 
 import { Card, Box, Typography } from "@mui/material";
 import { saveHistoryItem } from "../utils/history";
@@ -12,22 +11,19 @@ import { saveHistoryItem } from "../utils/history";
 const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
   const player = useRef(null);
   const proxiedUrl = `/proxy-stream?url=${encodeURIComponent(src)}`;
-
+  
   useEffect(() => {
     if (!movieInfo) return;
-
     const interval = setInterval(() => {
-      // 2. Cách lấy currentTime đúng trong Vidstack
       const activePlayer = player.current;
-      if (activePlayer && !activePlayer.state.paused) {
+      if (activePlayer && !activePlayer.paused) {
         saveHistoryItem({
           ...movieInfo,
-          currentTime: Math.floor(activePlayer.state.currentTime),
-          updatedAt: Date.now(),
+          currentTime: Math.floor(activePlayer.currentTime),
+          updatedAt: Date.now()
         });
       }
     }, 10000);
-
     return () => clearInterval(interval);
   }, [movieInfo]);
 
@@ -46,9 +42,9 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
           viewType="video"
           streamType="on-demand"
           playsInline
+          autoplay
           onEnded={onVideoEnd}
-          // 3. Sử dụng onCanPlay để resume thời gian cũ
-          onCanPlay={(detail) => {
+          onCanPlay={() => {
             if (movieInfo?.currentTime > 0 && player.current) {
               player.current.currentTime = movieInfo.currentTime;
             }
@@ -56,16 +52,16 @@ const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
         >
           <MediaProvider>
             {movieInfo?.thumb && (
-              <Poster 
+              <Poster
+                src={movieInfo.thumb}
+                alt={movieInfo.name}
                 className="vds-poster"
-                src={movieInfo.thumb} 
-                alt={movieInfo.name} 
               />
             )}
           </MediaProvider>
 
-          {/* 4. Truyền icons vào đây */}
-          <PlyrLayout icons={defaultLayoutIcons} />
+          {/* Dùng layout mặc định hoàn toàn */}
+          <DefaultVideoLayout icons={defaultLayoutIcons} />
         </MediaPlayer>
       </Box>
     </Card>
