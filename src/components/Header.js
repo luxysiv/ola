@@ -6,9 +6,9 @@ import {
   IconButton,
   Typography,
   Drawer,
- List,
-  ListItem,
+  List,
   ListItemText,
+  ListItemButton,
   Divider,
   Box,
   Collapse,
@@ -18,17 +18,23 @@ import {
   MenuItem,
   useMediaQuery
 } from "@mui/material";
+
 import { useTheme } from "@mui/material/styles";
+
 import MenuIcon from "@mui/icons-material/Menu";
 import SearchIcon from "@mui/icons-material/Search";
 import ExpandLess from "@mui/icons-material/ExpandLess";
 import ExpandMore from "@mui/icons-material/ExpandMore";
+
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
 function Header() {
+
   const theme = useTheme();
   const isDesktop = useMediaQuery(theme.breakpoints.up("md"));
+
+  const navigate = useNavigate();
 
   const [open, setOpen] = useState(false);
 
@@ -37,7 +43,6 @@ function Header() {
   const [openYear, setOpenYear] = useState(false);
   const [openType, setOpenType] = useState(false);
 
-  // anchor dropdown desktop
   const [anchorCategory, setAnchorCategory] = useState(null);
   const [anchorCountry, setAnchorCountry] = useState(null);
   const [anchorYear, setAnchorYear] = useState(null);
@@ -47,19 +52,21 @@ function Header() {
   const [countries, setCountries] = useState([]);
   const [yearInput, setYearInput] = useState("");
 
-  const navigate = useNavigate();
+  const toggleDrawer = () => setOpen(!open);
 
   useEffect(() => {
-    axios.get("https://phimapi.com/the-loai")
-      .then(res => setCategories(res.data || []))
+
+    axios
+      .get("https://phimapi.com/the-loai")
+      .then((res) => setCategories(res.data || []))
       .catch(() => setCategories([]));
 
-    axios.get("https://phimapi.com/quoc-gia")
-      .then(res => setCountries(res.data || []))
+    axios
+      .get("https://phimapi.com/quoc-gia")
+      .then((res) => setCountries(res.data || []))
       .catch(() => setCountries([]));
-  }, []);
 
-  const toggleDrawer = () => setOpen(!open);
+  }, []);
 
   const goToYear = () => {
     if (yearInput) {
@@ -81,53 +88,75 @@ function Header() {
 
   return (
     <>
-      <AppBar position="static">
+      {/* HEADER */}
+      <AppBar
+        position="static"
+        color="default"
+        sx={(theme) => ({
+          backgroundColor: theme.palette.background.paper,
+          color: theme.palette.text.primary,
+          borderBottom: `1px solid ${theme.palette.divider}`
+        })}
+      >
         <Toolbar>
 
-          {/* Mobile menu icon */}
           {!isDesktop && (
-            <IconButton color="inherit" onClick={toggleDrawer}>
+            <IconButton
+              edge="start"
+              onClick={toggleDrawer}
+            >
               <MenuIcon />
             </IconButton>
           )}
 
-          {/* Logo */}
           <Typography
             variant="h6"
-            sx={{ flexGrow: 1, cursor: "pointer" }}
+            sx={{
+              flexGrow: 1,
+              cursor: "pointer",
+              fontWeight: 700,
+              color: "primary.main"
+            }}
             onClick={() => navigate("/")}
           >
             Hdophim
           </Typography>
 
-          {/* Desktop menu */}
           {isDesktop && (
-            <Box sx={{ display: "flex", gap: 2, mr: 2 }}>
+            <Box sx={{ display: "flex", gap: 2 }}>
 
-              <Button color="inherit"
-                onClick={(e) => setAnchorCategory(e.currentTarget)}>
+              <Button
+                color="inherit"
+                onClick={(e) => setAnchorCategory(e.currentTarget)}
+              >
                 Thể loại
               </Button>
 
-              <Button color="inherit"
-                onClick={(e) => setAnchorCountry(e.currentTarget)}>
+              <Button
+                color="inherit"
+                onClick={(e) => setAnchorCountry(e.currentTarget)}
+              >
                 Quốc gia
               </Button>
 
-              <Button color="inherit"
-                onClick={(e) => setAnchorYear(e.currentTarget)}>
+              <Button
+                color="inherit"
+                onClick={(e) => setAnchorYear(e.currentTarget)}
+              >
                 Năm phát hành
               </Button>
 
-              <Button color="inherit"
-                onClick={(e) => setAnchorType(e.currentTarget)}>
+              <Button
+                color="inherit"
+                onClick={(e) => setAnchorType(e.currentTarget)}
+              >
                 Loại phim
               </Button>
+
             </Box>
           )}
 
           <IconButton
-            color="inherit"
             onClick={() => navigate("/tim-kiem")}
           >
             <SearchIcon />
@@ -136,15 +165,14 @@ function Header() {
         </Toolbar>
       </AppBar>
 
-      {/* ===== DESKTOP DROPDOWN ===== */}
+      {/* ===== DESKTOP MENU ===== */}
 
-      {/* Category */}
       <Menu
         anchorEl={anchorCategory}
         open={Boolean(anchorCategory)}
         onClose={() => setAnchorCategory(null)}
       >
-        {categories.map(c => (
+        {categories.map((c) => (
           <MenuItem
             key={c._id}
             onClick={() => {
@@ -157,13 +185,12 @@ function Header() {
         ))}
       </Menu>
 
-      {/* Country */}
       <Menu
         anchorEl={anchorCountry}
         open={Boolean(anchorCountry)}
         onClose={() => setAnchorCountry(null)}
       >
-        {countries.map(c => (
+        {countries.map((c) => (
           <MenuItem
             key={c._id}
             onClick={() => {
@@ -176,7 +203,6 @@ function Header() {
         ))}
       </Menu>
 
-      {/* Year */}
       <Menu
         anchorEl={anchorYear}
         open={Boolean(anchorYear)}
@@ -185,27 +211,30 @@ function Header() {
         <Box sx={{ p: 2, display: "flex", gap: 1 }}>
           <TextField
             size="small"
-            label="Nhập năm"
             type="number"
+            label="Nhập năm"
             value={yearInput}
             onChange={(e) => setYearInput(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === "Enter") goToYear();
             }}
           />
-          <Button variant="contained" onClick={goToYear}>
+
+          <Button
+            variant="contained"
+            onClick={goToYear}
+          >
             Enter
           </Button>
         </Box>
       </Menu>
 
-      {/* Type */}
       <Menu
         anchorEl={anchorType}
         open={Boolean(anchorType)}
         onClose={() => setAnchorType(null)}
       >
-        {typeList.map(t => (
+        {typeList.map((t) => (
           <MenuItem
             key={t.slug}
             onClick={() => {
@@ -219,21 +248,32 @@ function Header() {
       </Menu>
 
       {/* ===== MOBILE DRAWER ===== */}
-      <Drawer anchor="left" open={open} onClose={toggleDrawer}>
-        <Box sx={{ width: 250 }}>
 
-          {/* Thể loại */}
+      <Drawer
+        anchor="left"
+        open={open}
+        onClose={toggleDrawer}
+        PaperProps={{
+          sx: (theme) => ({
+            backgroundColor: theme.palette.background.default
+          })
+        }}
+      >
+        <Box sx={{ width: 260 }}>
+
           <List>
-            <ListItem button onClick={() => setOpenCategory(!openCategory)}>
+
+            <ListItemButton
+              onClick={() => setOpenCategory(!openCategory)}
+            >
               <ListItemText primary="Thể loại" />
               {openCategory ? <ExpandLess /> : <ExpandMore />}
-            </ListItem>
+            </ListItemButton>
 
             <Collapse in={openCategory}>
-              <List component="div" disablePadding>
-                {categories.map(c => (
-                  <ListItem
-                    button
+              <List>
+                {categories.map((c) => (
+                  <ListItemButton
                     key={c._id}
                     onClick={() => {
                       navigate(`/the-loai/${c.slug}`);
@@ -241,26 +281,28 @@ function Header() {
                     }}
                   >
                     <ListItemText primary={c.name} />
-                  </ListItem>
+                  </ListItemButton>
                 ))}
               </List>
             </Collapse>
+
           </List>
 
           <Divider />
 
-          {/* Quốc gia */}
           <List>
-            <ListItem button onClick={() => setOpenCountry(!openCountry)}>
+
+            <ListItemButton
+              onClick={() => setOpenCountry(!openCountry)}
+            >
               <ListItemText primary="Quốc gia" />
               {openCountry ? <ExpandLess /> : <ExpandMore />}
-            </ListItem>
+            </ListItemButton>
 
             <Collapse in={openCountry}>
-              <List component="div" disablePadding>
-                {countries.map(c => (
-                  <ListItem
-                    button
+              <List>
+                {countries.map((c) => (
+                  <ListItemButton
                     key={c._id}
                     onClick={() => {
                       navigate(`/quoc-gia/${c.slug}`);
@@ -268,20 +310,23 @@ function Header() {
                     }}
                   >
                     <ListItemText primary={c.name} />
-                  </ListItem>
+                  </ListItemButton>
                 ))}
               </List>
             </Collapse>
+
           </List>
 
           <Divider />
 
-          {/* Năm */}
           <List>
-            <ListItem button onClick={() => setOpenYear(!openYear)}>
+
+            <ListItemButton
+              onClick={() => setOpenYear(!openYear)}
+            >
               <ListItemText primary="Năm phát hành" />
               {openYear ? <ExpandLess /> : <ExpandMore />}
-            </ListItem>
+            </ListItemButton>
 
             <Collapse in={openYear}>
               <Box sx={{ p: 2, display: "flex", gap: 1 }}>
@@ -292,31 +337,34 @@ function Header() {
                   label="Nhập năm"
                   value={yearInput}
                   onChange={(e) => setYearInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") goToYear();
-                  }}
                 />
-                <Button variant="contained" onClick={goToYear}>
-                  Enter
+
+                <Button
+                  variant="contained"
+                  onClick={goToYear}
+                >
+                  Go
                 </Button>
               </Box>
             </Collapse>
+
           </List>
 
           <Divider />
 
-          {/* Loại phim */}
           <List>
-            <ListItem button onClick={() => setOpenType(!openType)}>
+
+            <ListItemButton
+              onClick={() => setOpenType(!openType)}
+            >
               <ListItemText primary="Loại phim" />
               {openType ? <ExpandLess /> : <ExpandMore />}
-            </ListItem>
+            </ListItemButton>
 
             <Collapse in={openType}>
-              <List component="div" disablePadding>
-                {typeList.map(t => (
-                  <ListItem
-                    button
+              <List>
+                {typeList.map((t) => (
+                  <ListItemButton
                     key={t.slug}
                     onClick={() => {
                       navigate(`/danh-sach/${t.slug}`);
@@ -324,14 +372,16 @@ function Header() {
                     }}
                   >
                     <ListItemText primary={t.name} />
-                  </ListItem>
+                  </ListItemButton>
                 ))}
               </List>
             </Collapse>
+
           </List>
 
         </Box>
       </Drawer>
+
     </>
   );
 }
