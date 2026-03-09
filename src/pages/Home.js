@@ -1,9 +1,7 @@
-
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-
 import {
   Container,
   Typography,
@@ -15,9 +13,13 @@ import {
   Paper,
   Skeleton
 } from "@mui/material";
-
 import { Swiper, SwiperSlide } from "swiper/react";
-import { Autoplay, Pagination, Navigation, EffectCoverflow } from "swiper/modules";
+import {
+  Autoplay,
+  Pagination,
+  Navigation,
+  EffectCoverflow
+} from "swiper/modules";
 
 import "swiper/css";
 import "swiper/css/pagination";
@@ -26,34 +28,30 @@ import "swiper/css/effect-coverflow";
 
 import { getHistory } from "../utils/history";
 
-/* ================= Helper ================= */
-
 const normalize = (str = "") =>
-  str
-    .toString()
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/đ/g, "d")
-    .replace(/[()#]/g, "")
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-")
-    .trim();
+  str.toString().toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d").replace(/[()#]/g, "")
+    .replace(/\s+/g, "-").replace(/-+/g, "-").trim();
+
+/* ================= Poster helper ================= */
 
 const getPosterUrl = (url) => {
   if (!url) return "/no-image.jpg";
-  return url.startsWith("https://") ? url : `https://phimimg.com/${url}`;
+  return url.startsWith("https://")
+    ? url
+    : `https://phimimg.com/${url}`;
 };
 
-/* ================= Skeleton ================= */
-
+/* ================= Skeleton Components ================= */
+// (Giữ nguyên các component Skeleton của bạn vì chúng đã rất tốt)
 function MovieCardSkeleton() {
   return (
-    <Card sx={{ width: 160 }}>
-      <Skeleton variant="rectangular" sx={{ aspectRatio: "2 / 3" }} />
-      <CardContent>
-        <Skeleton />
-        <Skeleton width="60%" />
+    <Card sx={{ minWidth: 160, borderRadius: 2, boxShadow: 2, p: 1 }}>
+      <Skeleton variant="rectangular" height={220} sx={{ borderRadius: 2 }} animation="wave" />
+      <CardContent sx={{ textAlign: "center" }}>
+        <Skeleton variant="text" width="80%" height={20} animation="wave" />
+        <Skeleton variant="text" width="60%" height={15} animation="wave" />
       </CardContent>
     </Card>
   );
@@ -61,86 +59,40 @@ function MovieCardSkeleton() {
 
 function BannerSkeleton() {
   return (
-    <Paper sx={{ mb: 5, p: 2 }}>
-      <Skeleton width={200} height={40} />
-      <Skeleton variant="rectangular" sx={{ width: "100%", aspectRatio: "2 / 3" }} />
+    <Paper elevation={2} sx={{ mb: 5, p: 2, borderRadius: 3 }}>
+      <Box sx={{ display: "flex", justifyContent: "space-between", mb: 2 }}>
+        <Skeleton variant="text" width={240} height={40} animation="wave" />
+        <Skeleton variant="rectangular" width={90} height={36} animation="wave" />
+      </Box>
+      <Skeleton variant="rectangular" width="100%" height="70vh" sx={{ borderRadius: 3 }} animation="wave" />
     </Paper>
   );
 }
 
-/* ================= Movie Card ================= */
-
-function MovieCard({ movie, link }) {
+function HorizontalSkeleton() {
   return (
-    <Card
-      sx={{
-        width: { xs: 120, sm: 140, md: 160, lg: 180 },
-        flexShrink: 0,
-        display: "flex",
-        flexDirection: "column",
-        transition: "0.25s",
-        "&:hover": { transform: "scale(1.06)" }
-      }}
-    >
-      <Link to={link} style={{ textDecoration: "none" }}>
-        <Box sx={{ aspectRatio: "2 / 3", overflow: "hidden", borderRadius: 2 }}>
-          <CardMedia
-            component="img"
-            image={getPosterUrl(movie.poster_url || movie.poster)}
-            sx={{ width: "100%", height: "100%", objectFit: "cover" }}
-          />
-        </Box>
-
-        <CardContent
-          sx={{
-            height: 60,
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "space-between",
-            p: 1
-          }}
-        >
-          <Typography
-            variant="subtitle2"
-            sx={{
-              fontWeight: 600,
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              display: "-webkit-box",
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: "vertical"
-            }}
-          >
-            {movie.name}
-          </Typography>
-
-          <Typography variant="caption" color="text.secondary">
-            {movie.year} • {movie.quality}
-          </Typography>
-        </CardContent>
-      </Link>
-    </Card>
+    <Paper elevation={2} sx={{ mt: 5, p: 2, borderRadius: 3 }}>
+      <Box sx={{ display: "flex", justifyContent: "space-between", mb: 2 }}>
+        <Skeleton variant="text" width={200} height={40} animation="wave" />
+        <Skeleton variant="rectangular" width={80} height={30} animation="wave" />
+      </Box>
+      <Box sx={{ display: "flex", gap: 2, overflowX: "auto", pb: 1 }}>
+        {[...Array(6)].map((_, i) => <MovieCardSkeleton key={i} />)}
+      </Box>
+    </Paper>
   );
 }
 
-/* ================= Banner ================= */
+/* ================= Banner Section ================= */
 
 function BannerSection({ title, link, movies }) {
   return (
-    <Paper elevation={2} sx={{ mb: 5, p: 2 }}>
-      <Box
-        sx={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          mb: 2
-        }}
-      >
-        <Typography variant="h5" fontWeight="bold">
+    <Paper elevation={2} sx={{ mb: 5, p: 2, borderRadius: 3 }}>
+      <Box sx={{ display: "flex", justifyContent: "space-between", mb: 2, alignItems: "center" }}>
+        <Typography variant="h5" sx={{ fontWeight: "bold", borderBottom: "3px solid #1976d2" }}>
           {title}
         </Typography>
-
-        <Button component={Link} to={link} variant="outlined">
+        <Button component={Link} to={link} variant="outlined" size="small">
           Xem thêm
         </Button>
       </Box>
@@ -148,62 +100,40 @@ function BannerSection({ title, link, movies }) {
       <Swiper
         modules={[Autoplay, Pagination, Navigation, EffectCoverflow]}
         effect="coverflow"
-        centeredSlides
         grabCursor
-        loop
-        autoplay={{ delay: 4000 }}
+        centeredSlides
+        slidesPerView={3}
+        coverflowEffect={{ rotate: 0, stretch: 0, depth: 140, modifier: 1.6, slideShadows: false }}
+        autoplay={{ delay: 4000, disableOnInteraction: false }}
         pagination={{ clickable: true }}
         navigation
-        coverflowEffect={{
-          rotate: 0,
-          depth: 140,
-          modifier: 1.5,
-          slideShadows: false
-        }}
+        loop
         breakpoints={{
           0: { slidesPerView: 1 },
-          600: { slidesPerView: 1.5 },
+          600: { slidesPerView: 1.2 },
           900: { slidesPerView: 2.2 },
           1200: { slidesPerView: 3 }
         }}
+        style={{ width: "100%", height: "70vh" }}
       >
         {movies.map((m) => (
           <SwiperSlide key={m._id}>
-            <Link to={`/phim/${m.slug}`} style={{ textDecoration: "none" }}>
-              <Box sx={{ maxWidth: 420, margin: "0 auto" }}>
+            <Link to={`/phim/${m.slug}`} style={{ display: "block", width: "100%", height: "100%" }}>
+              <Box sx={{ position: "relative", width: "100%", height: "100%" }}>
+                <Box
+                  component="img"
+                  src={getPosterUrl(m.poster_url)}
+                  alt={m.name}
+                  sx={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: 3, boxShadow: 6 }}
+                />
                 <Box
                   sx={{
-                    aspectRatio: "2 / 3",
-                    borderRadius: 3,
-                    overflow: "hidden",
-                    position: "relative"
+                    position: "absolute", bottom: 0, left: 0, right: 0, p: { xs: 2, md: 4 },
+                    background: "linear-gradient(to top, rgba(0,0,0,0.8), transparent)"
                   }}
                 >
-                  <Box
-                    component="img"
-                    src={getPosterUrl(m.poster_url)}
-                    sx={{ width: "100%", height: "100%", objectFit: "cover" }}
-                  />
-
-                  <Box
-                    sx={{
-                      position: "absolute",
-                      bottom: 0,
-                      left: 0,
-                      right: 0,
-                      p: 2,
-                      background:
-                        "linear-gradient(to top, rgba(0,0,0,0.8), transparent)"
-                    }}
-                  >
-                    <Typography variant="h6" color="white" fontWeight="bold">
-                      {m.name}
-                    </Typography>
-
-                    <Typography variant="body2" color="white">
-                      {m.year} • {m.quality}
-                    </Typography>
-                  </Box>
+                  <Typography variant="h6" color="white" fontWeight="bold" noWrap>{m.name}</Typography>
+                  <Typography variant="body2" color="white">{m.year} • {m.quality}</Typography>
                 </Box>
               </Box>
             </Link>
@@ -218,46 +148,51 @@ function BannerSection({ title, link, movies }) {
 
 function HorizontalSection({ title, link, movies, isHistory = false }) {
   return (
-    <Paper elevation={2} sx={{ mt: 5, p: 2 }}>
-      <Box
-        sx={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          mb: 2
-        }}
-      >
-        <Typography variant="h5" fontWeight="bold">
+    <Paper elevation={2} sx={{ mt: 5, p: 2, borderRadius: 3 }}>
+      <Box sx={{ display: "flex", justifyContent: "space-between", mb: 2, alignItems: "center" }}>
+        <Typography variant="h5" sx={{ fontWeight: "bold", borderBottom: "3px solid #1976d2" }}>
           {title}
         </Typography>
-
-        <Button component={Link} to={link} variant="outlined">
+        <Button component={Link} to={link} variant="outlined" size="small">
           Xem thêm
         </Button>
       </Box>
 
-      <Box
-        sx={{
-          display: "flex",
-          gap: 2,
-          overflowX: "auto",
-          pb: 1,
-          "&::-webkit-scrollbar": { display: "none" }
-        }}
-      >
+      <Box sx={{ display: "flex", overflowX: "auto", gap: 2, pb: 1 }}>
         {movies.map((m, i) => {
-          const movieLink = isHistory
+          // Tạo link: Nếu là lịch sử thì nhảy thẳng vào tập đang xem, ngược lại vào trang chi tiết
+          const movieLink = isHistory 
             ? `/phim/${m.slug}?${normalize(m.server)}&${normalize(m.episode)}`
             : `/phim/${m.slug}`;
 
-          return <MovieCard key={m._id || i} movie={m} link={movieLink} />;
+          return (
+            <Card key={m._id || i} sx={{ minWidth: 160, flex: "0 0 auto", transition: "0.3s", "&:hover": { transform: "scale(1.05)", boxShadow: 6 } }}>
+              <Link to={movieLink}>
+                <CardMedia
+                  component="img"
+                  height="220"
+                  image={getPosterUrl(m.poster_url || m.poster)}
+                  onError={(e) => (e.target.src = "/no-image.jpg")}
+                  sx={{ borderRadius: 2 }}
+                />
+              </Link>
+              <CardContent sx={{ textAlign: "center", p: 1 }}>
+                <Typography variant="subtitle2" noWrap fontWeight="bold">{m.name}</Typography>
+                {isHistory ? (
+                  <Typography variant="caption" color="primary">Đang xem: {m.episode}</Typography>
+                ) : (
+                  <Typography variant="caption" color="text.secondary">{m.year} • {m.quality}</Typography>
+                )}
+              </CardContent>
+            </Card>
+          );
         })}
       </Box>
     </Paper>
   );
 }
 
-/* ================= Home ================= */
+/* ================= Home Component ================= */
 
 function Home() {
   const [latest, setLatest] = useState([]);
@@ -280,6 +215,7 @@ function Home() {
         setHanQuoc(countryRes.data.data.items || []);
         setPhimBo(typeRes.data.data.items || []);
       })
+      .catch(() => {})
       .finally(() => setLoading(false));
 
     setHistory(getHistory());
@@ -289,49 +225,32 @@ function Home() {
     return (
       <Container maxWidth="lg" sx={{ mt: 5 }}>
         <BannerSkeleton />
-        <MovieCardSkeleton />
+        <HorizontalSkeleton />
+        <HorizontalSkeleton />
       </Container>
     );
   }
 
   return (
     <Container maxWidth="lg" sx={{ mt: 5, mb: 5 }}>
+      {/* Tích hợp Helmet cho trang chủ */}
       <Helmet>
-        <title>Hdophim - Xem phim trực tuyến miễn phí</title>
+        <title>Hdophim - Xem phim trực tuyến miễn phí Full HD</title>
+        <meta name="description" content="Trang chủ KKPhim, cập nhật phim mới nhất, phim hành động, phim bộ, phim lẻ chất lượng cao Vietsub." />
       </Helmet>
 
-      <BannerSection
-        title="Phim mới cập nhật"
-        link="/phim-moi-cap-nhat"
-        movies={latest}
-      />
+      {/* Banner Phim mới */}
+      <BannerSection title="Phim mới cập nhật" link="/phim-moi-cap-nhat" movies={latest} />
 
+      {/* Section Lịch sử */}
       {history.length > 0 && (
-        <HorizontalSection
-          title="Tiếp tục xem"
-          link="/lich-su"
-          movies={history}
-          isHistory
-        />
+        <HorizontalSection title="Tiếp tục xem" link="/lich-su" movies={history} isHistory={true} />
       )}
 
-      <HorizontalSection
-        title="Phim Hành Động"
-        link="/the-loai/hanh-dong"
-        movies={hanhDong}
-      />
-
-      <HorizontalSection
-        title="Phim Hàn Quốc"
-        link="/quoc-gia/han-quoc"
-        movies={hanQuoc}
-      />
-
-      <HorizontalSection
-        title="Phim Bộ Mới"
-        link="/danh-sach/phim-bo"
-        movies={phimBo}
-      />
+      {/* Các Category khác */}
+      <HorizontalSection title="Phim Hành Động" link="/the-loai/hanh-dong" movies={hanhDong} />
+      <HorizontalSection title="Phim Hàn Quốc" link="/quoc-gia/han-quoc" movies={hanQuoc} />
+      <HorizontalSection title="Phim Bộ Mới" link="/danh-sach/phim-bo" movies={phimBo} />
     </Container>
   );
 }
