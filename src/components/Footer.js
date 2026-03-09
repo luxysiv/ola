@@ -1,17 +1,18 @@
-//src/components/Footer.js
+// src/components/Footer.js
 import React from "react";
 import { Box, Typography, Container } from "@mui/material";
 
 function Footer() {
   return (
     <Box
-      sx={{
+      sx={(theme) => ({
         mt: 4,
         py: 3,
-        backgroundColor: "#111",
-        color: "#aaa",
-        textAlign: "center"
-      }}
+        backgroundColor: theme.palette.background.paper,
+        color: theme.palette.text.secondary,
+        textAlign: "center",
+        borderTop: `1px solid ${theme.palette.divider}`
+      })}
     >
       <Container>
         <Typography variant="body2">
