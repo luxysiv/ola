@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
+
 import {
   Container,
   Typography,
@@ -29,12 +30,6 @@ import "swiper/css/effect-coverflow";
 
 import { getHistory } from "../utils/history";
 
-const normalize = (str = "") =>
-  str.toString().toLowerCase()
-    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-    .replace(/đ/g, "d").replace(/[()#]/g, "")
-    .replace(/\s+/g, "-").replace(/-+/g, "-").trim();
-
 /* ================= Poster helper ================= */
 
 const getPosterUrl = (url) => {
@@ -44,33 +39,27 @@ const getPosterUrl = (url) => {
     : `https://phimimg.com/${url}`;
 };
 
-/* ================= Skeleton Components ================= */
+/* ================= Skeleton ================= */
 
 function MovieCardSkeleton() {
   return (
-    <Card sx={{ minWidth: 160, borderRadius: 2, boxShadow: 2, p: 1 }}>
-      <Skeleton variant="rectangular" height={220} sx={{ borderRadius: 2 }} animation="wave" />
-      <CardContent sx={{ textAlign: "center" }}>
-        <Skeleton variant="text" width="80%" height={20} animation="wave" />
-        <Skeleton variant="text" width="60%" height={15} animation="wave" />
+    <Card sx={{ minWidth: 160 }}>
+      <Skeleton variant="rectangular" height={220} />
+      <CardContent>
+        <Skeleton width="80%" />
+        <Skeleton width="60%" />
       </CardContent>
     </Card>
   );
 }
 
-function BannerSkeleton() {
-  return (
-    <Paper elevation={2} sx={{ mb: 5, p: 2, borderRadius: 3 }}>
-      <Skeleton variant="rectangular" width="100%" height="70vh" sx={{ borderRadius: 3 }} animation="wave" />
-    </Paper>
-  );
-}
-
 function HorizontalSkeleton() {
   return (
-    <Paper elevation={2} sx={{ mt: 5, p: 2, borderRadius: 3 }}>
+    <Paper sx={{ mt: 4, p: 2 }}>
       <Box sx={{ display: "flex", gap: 2 }}>
-        {[...Array(6)].map((_, i) => <MovieCardSkeleton key={i} />)}
+        {[...Array(6)].map((_, i) => (
+          <MovieCardSkeleton key={i} />
+        ))}
       </Box>
     </Paper>
   );
@@ -80,16 +69,28 @@ function HorizontalSkeleton() {
 
 function BannerSection({ title, link, movies }) {
   return (
-    <Paper elevation={2} className="mb-10 p-3 rounded-2xl bg-zinc-900">
+    <Paper sx={{ mb: 4, p: 2, borderRadius: 3 }}>
 
-      <Box className="flex justify-between items-center mb-4">
-        <Typography variant="h5" className="font-bold text-white border-b-2 border-blue-500 pb-1">
+      <Box sx={{
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        mb: 2
+      }}>
+
+        <Typography variant="h5" sx={{ fontWeight: "bold" }}>
           {title}
         </Typography>
 
-        <Button component={Link} to={link} variant="outlined" size="small">
+        <Button
+          component={Link}
+          to={link}
+          variant="outlined"
+          size="small"
+        >
           Xem thêm
         </Button>
+
       </Box>
 
       <Swiper
@@ -108,27 +109,48 @@ function BannerSection({ title, link, movies }) {
           900: { slidesPerView: 2.2 },
           1200: { slidesPerView: 3 }
         }}
-        style={{ height: "70vh" }}
+        style={{ height: "60vh" }}
       >
+
         {movies.map((m) => (
           <SwiperSlide key={m._id}>
+
             <Link to={`/phim/${m.slug}`}>
 
-              <Box className="relative group h-full overflow-hidden rounded-2xl">
+              <Box sx={{
+                position: "relative",
+                height: "100%"
+              }}>
 
                 <img
                   src={getPosterUrl(m.poster_url)}
                   alt={m.name}
-                  className="w-full h-full object-cover transition duration-500 group-hover:scale-110"
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "cover",
+                    borderRadius: "12px"
+                  }}
                 />
 
-                <Box className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/90 to-transparent">
+                <Box sx={{
+                  position: "absolute",
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  p: 3,
+                  background:
+                    "linear-gradient(to top, rgba(0,0,0,0.8), transparent)"
+                }}>
 
-                  <Typography className="text-white font-bold text-lg" noWrap>
+                  <Typography
+                    variant="h6"
+                    sx={{ color: "#fff", fontWeight: "bold" }}
+                  >
                     {m.name}
                   </Typography>
 
-                  <Typography className="text-gray-300 text-sm">
+                  <Typography sx={{ color: "#ddd", fontSize: 13 }}>
                     {m.year} • {m.quality}
                   </Typography>
 
@@ -137,8 +159,10 @@ function BannerSection({ title, link, movies }) {
               </Box>
 
             </Link>
+
           </SwiperSlide>
         ))}
+
       </Swiper>
 
     </Paper>
@@ -147,70 +171,89 @@ function BannerSection({ title, link, movies }) {
 
 /* ================= Horizontal Section ================= */
 
-function HorizontalSection({ title, link, movies, isHistory = false }) {
-
+function HorizontalSection({ title, link, movies }) {
   return (
-    <Paper elevation={2} className="mt-10 p-3 rounded-2xl bg-zinc-900">
+    <Paper sx={{ mt: 4, p: 2, borderRadius: 3 }}>
 
-      <Box className="flex justify-between items-center mb-4">
+      <Box sx={{
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        mb: 2
+      }}>
 
-        <Typography variant="h5" className="font-bold text-white border-b-2 border-blue-500 pb-1">
+        <Typography variant="h5" sx={{ fontWeight: "bold" }}>
           {title}
         </Typography>
 
-        <Button component={Link} to={link} variant="outlined" size="small">
+        <Button
+          component={Link}
+          to={link}
+          variant="outlined"
+          size="small"
+        >
           Xem thêm
         </Button>
 
       </Box>
 
-      <Box className="flex overflow-x-auto gap-4 scrollbar-hide pb-2">
+      <Box
+        className="scrollbar-hide"
+        style={{
+          display: "flex",
+          overflowX: "auto",
+          gap: 16,
+          paddingBottom: 8
+        }}
+      >
 
-        {movies.map((m, i) => {
+        {movies.map((m, i) => (
+          <Card
+            key={m._id || i}
+            sx={{
+              minWidth: 160,
+              flex: "0 0 auto",
+              transition: "0.3s",
+              "&:hover": {
+                transform: "scale(1.05)"
+              }
+            }}
+          >
 
-          const movieLink = isHistory
-            ? `/phim/${m.slug}?${normalize(m.server)}&${normalize(m.episode)}`
-            : `/phim/${m.slug}`;
+            <Link to={`/phim/${m.slug}`}>
 
-          return (
-            <Card
-              key={m._id || i}
-              className="group min-w-[160px] hover:scale-105 transition duration-300 cursor-pointer"
-            >
+              <CardMedia
+                component="img"
+                height="220"
+                image={getPosterUrl(m.poster_url)}
+                onError={(e) =>
+                  (e.target.src = "/no-image.jpg")
+                }
+              />
 
-              <Link to={movieLink}>
+            </Link>
 
-                <CardMedia
-                  component="img"
-                  height="220"
-                  image={getPosterUrl(m.poster_url || m.poster)}
-                  onError={(e) => (e.target.src = "/no-image.jpg")}
-                  className="rounded-xl transition duration-300 group-hover:brightness-110"
-                />
+            <CardContent sx={{ textAlign: "center", p: 1 }}>
 
-              </Link>
+              <Typography
+                variant="subtitle2"
+                noWrap
+                sx={{ fontWeight: "bold" }}
+              >
+                {m.name}
+              </Typography>
 
-              <CardContent className="text-center p-2">
+              <Typography
+                variant="caption"
+                color="text.secondary"
+              >
+                {m.year} • {m.quality}
+              </Typography>
 
-                <Typography variant="subtitle2" noWrap className="font-bold">
-                  {m.name}
-                </Typography>
+            </CardContent>
 
-                {isHistory ? (
-                  <Typography variant="caption" color="primary">
-                    Đang xem: {m.episode}
-                  </Typography>
-                ) : (
-                  <Typography variant="caption" color="text.secondary">
-                    {m.year} • {m.quality}
-                  </Typography>
-                )}
-
-              </CardContent>
-
-            </Card>
-          );
-        })}
+          </Card>
+        ))}
 
       </Box>
 
@@ -218,7 +261,7 @@ function HorizontalSection({ title, link, movies, isHistory = false }) {
   );
 }
 
-/* ================= Home Component ================= */
+/* ================= Home ================= */
 
 function Home() {
 
@@ -254,8 +297,7 @@ function Home() {
 
   if (loading) {
     return (
-      <Container maxWidth="lg" className="mt-10">
-        <BannerSkeleton />
+      <Container maxWidth="lg" sx={{ mt: 5 }}>
         <HorizontalSkeleton />
       </Container>
     );
@@ -263,14 +305,14 @@ function Home() {
 
   return (
 
-    <Container maxWidth="lg" className="mt-10 mb-10 px-4 md:px-6 text-white">
+    <Container
+      maxWidth="lg"
+      sx={{ mt: 5, mb: 5 }}
+      className="px-4"
+    >
 
       <Helmet>
-        <title>Hdophim - Xem phim trực tuyến miễn phí Full HD</title>
-        <meta
-          name="description"
-          content="Trang chủ phim mới cập nhật, phim hành động, phim bộ chất lượng cao Vietsub."
-        />
+        <title>Hdophim - Xem phim miễn phí</title>
       </Helmet>
 
       <BannerSection
@@ -278,15 +320,6 @@ function Home() {
         link="/phim-moi-cap-nhat"
         movies={latest}
       />
-
-      {history.length > 0 && (
-        <HorizontalSection
-          title="Tiếp tục xem"
-          link="/lich-su"
-          movies={history}
-          isHistory={true}
-        />
-      )}
 
       <HorizontalSection
         title="Phim Hành Động"
@@ -301,7 +334,7 @@ function Home() {
       />
 
       <HorizontalSection
-        title="Phim Bộ Mới"
+        title="Phim Bộ"
         link="/danh-sach/phim-bo"
         movies={phimBo}
       />
