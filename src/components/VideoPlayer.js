@@ -8,9 +8,13 @@ import '@vidstack/react/player/styles/default/layouts/video.css';
 import { Card, Box, Typography } from "@mui/material";
 import { saveHistoryItem } from "../utils/history";
 
+function maskUrl(url) {
+  return btoa(encodeURIComponent(url));
+}
+
 const VideoPlayer = ({ src, title, movieInfo, onVideoEnd }) => {
   const player = useRef(null);
-  const proxiedUrl = `/proxy-stream?url=${encodeURIComponent(src)}`;
+  const proxiedUrl = `/proxy-stream/${maskUrl(src)}`;
   
   useEffect(() => {
     if (!movieInfo) return;
