@@ -4,154 +4,94 @@ const PROXY_PREFIX = '/proxy-stream';
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', () => self.clients.claim());
 
-// ===== Fetch interceptor =====
+// ===== Fetch =====
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
   if (url.pathname.startsWith(PROXY_PREFIX)) {
-    event.respondWith(handleVirtualRequest(event));
+    event.respondWith(handleRequest(event));
   }
 });
 
-// ===== Decode URL (unmask) =====
-function unmaskUrl(encoded) {
+// ===== Mask / Unmask =====
+function maskUrl(url) {
+  return btoa(encodeURIComponent(url));
+}
+
+function unmaskUrl(str) {
   try {
-    return decodeURIComponent(atob(encoded));
+    return decodeURIComponent(atob(str));
   } catch {
     return null;
   }
 }
 
-// ===== Encode URL (mask) =====
-function maskUrl(url) {
-  return btoa(encodeURIComponent(url));
-}
-
-// ===== Handle request =====
-async function handleVirtualRequest(event) {
+// ===== Main handler =====
+async function handleRequest(event) {
   const url = new URL(event.request.url);
-
-  // lấy phần encoded sau /proxy-stream/
   const encoded = url.pathname.replace(PROXY_PREFIX + '/', '');
 
-  if (!encoded) {
-    return new Response("Missing encoded URL", { status: 400 });
-  }
+  if (!encoded) return new Response("Bad request", { status: 400 });
 
-  const playlistUrl = unmaskUrl(encoded);
+  const targetUrl = unmaskUrl(encoded);
+  if (!targetUrl) return new Response("Invalid URL", { status: 400 });
 
-  if (!playlistUrl) {
-    return new Response("Invalid encoded URL", { status: 400 });
-  }
+  const res = await fetch(targetUrl, {
+    headers: event.request.headers
+  });
 
-  try {
-    const manifest = await fetchAndProcessPlaylist(playlistUrl);
+  if (!res.ok) return res;
 
-    return new Response(manifest, {
+  const contentType = res.headers.get("content-type") || "";
+
+  // ===== Nếu là m3u8 =====
+  if (contentType.includes("application/vnd.apple.mpegurl") || targetUrl.endsWith(".m3u8")) {
+    const text = await res.text();
+    const rewritten = rewriteM3U8(text, targetUrl);
+
+    return new Response(rewritten, {
       headers: {
         "Content-Type": "application/vnd.apple.mpegurl",
         "Access-Control-Allow-Origin": "*",
-        "Cache-Control": "no-store, no-cache, must-revalidate",
-      },
+        "Cache-Control": "no-store"
+      }
     });
-  } catch (err) {
-    return new Response(err.message, { status: 500 });
   }
+
+  // ===== Nếu là segment/key/file khác =====
+  return new Response(res.body, {
+    headers: {
+      "Access-Control-Allow-Origin": "*"
+    }
+  });
 }
 
-// ===== Fetch & process m3u8 =====
-async function fetchAndProcessPlaylist(playlistUrl) {
-  const res = await fetch(playlistUrl);
+// ===== Rewrite m3u8 chuẩn =====
+function rewriteM3U8(content, baseUrl) {
+  const lines = content.split(/\r?\n/);
 
-  if (!res.ok) throw new Error("Cannot fetch playlist");
+  return lines.map((line) => {
+    const trimmed = line.trim();
 
-  let text = await res.text();
+    if (!trimmed) return line;
 
-  // ===== Convert tất cả line URL -> absolute + mask =====
-  text = text.replace(/^[^#].*$/gm, (line) => {
+    // ===== URI trong tag (KEY, MAP, etc) =====
+    if (trimmed.startsWith("#EXT-X-KEY") || trimmed.startsWith("#EXT-X-MAP")) {
+      return line.replace(/URI="([^"]+)"/, (match, uri) => {
+        const abs = new URL(uri, baseUrl).toString();
+        return `URI="${PROXY_PREFIX}/${maskUrl(abs)}"`;
+      });
+    }
+
+    // ===== Bỏ qua comment =====
+    if (trimmed.startsWith("#")) return line;
+
+    // ===== Đây là URL (segment hoặc playlist con) =====
     try {
-      const abs = new URL(line.trim(), playlistUrl).toString();
+      const abs = new URL(trimmed, baseUrl).toString();
       return `${PROXY_PREFIX}/${maskUrl(abs)}`;
     } catch {
       return line;
     }
-  });
-
-  // ===== Nếu là master playlist → lấy sub playlist =====
-  if (text.includes("#EXT-X-STREAM-INF")) {
-    const lines = text.split("\n");
-
-    for (let i = 1; i < lines.length; i++) {
-      if (lines[i - 1].includes("#EXT-X-STREAM-INF")) {
-        const subEncoded = lines[i].replace(PROXY_PREFIX + '/', '').trim();
-        const subUrl = unmaskUrl(subEncoded);
-
-        if (subUrl) {
-          return fetchAndProcessPlaylist(subUrl);
-        }
-      }
-    }
-  }
-
-  return cleanManifest(text);
-}
-
-// ===== Clean manifest =====
-function cleanManifest(manifest) {
-  const lines = manifest.split(/\r?\n/);
-  const result = [];
-
-  let i = 0;
-
-  while (i < lines.length) {
-    const line = lines[i].trim();
-
-    if (line !== "#EXT-X-DISCONTINUITY") {
-      result.push(lines[i]);
-      i++;
-      continue;
-    }
-
-    const start = i;
-    let j = i + 1;
-    let segments = 0;
-    let hasKeyNone = false;
-
-    while (j < lines.length) {
-      const l = lines[j].trim();
-
-      if (l.startsWith("#EXTINF:")) segments++;
-
-      if (l.includes("#EXT-X-KEY:METHOD=NONE"))
-        hasKeyNone = true;
-
-      if (l === "#EXT-X-DISCONTINUITY") break;
-
-      j++;
-    }
-
-    if (j >= lines.length) {
-      result.push(lines[i]);
-      i++;
-      continue;
-    }
-
-    // Skip đoạn ads / junk
-    if (hasKeyNone || (segments >= 5 && segments <= 20)) {
-      i = j + 1;
-      continue;
-    }
-
-    for (let k = start; k <= j; k++) {
-      result.push(lines[k]);
-    }
-
-    i = j + 1;
-  }
-
-  return result
-    .join("\n")
-    .replace(/\/convertv7\//g, "/")
-    .replace(/\n{2,}/g, "\n")
-    .trim();
+  }).join("\n");
 }
