@@ -29,6 +29,7 @@ function Search() {
   const [suggestions, setSuggestions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [totalPages, setTotalPages] = useState(1);
+  const [cdnImage, setCdnImage] = useState("");
 
   // SEO
   const [seo, setSeo] = useState({
@@ -37,9 +38,21 @@ function Search() {
     image: ""
   });
 
-  // ============================
-  // FETCH SEARCH
-  // ============================
+  // =========================
+  // HELPER IMAGE
+  // =========================
+  const getImageUrl = (movie) => {
+    if (!cdnImage) return "/no-image.jpg";
+
+    if (movie.poster_url) return `${cdnImage}/${movie.poster_url}`;
+    if (movie.thumb_url) return `${cdnImage}/${movie.thumb_url}`;
+
+    return "/no-image.jpg";
+  };
+
+  // =========================
+  // SEARCH API
+  // =========================
   const handleSearch = useCallback(async (pageNum, kw, shouldNavigate = true) => {
     if (!kw || !kw.trim()) return;
 
@@ -53,11 +66,12 @@ function Search() {
       const data = res.data.data;
 
       setResults(data.items || []);
+      setCdnImage(data.APP_DOMAIN_CDN_IMAGE || "");
+
       setTotalPages(
         Math.ceil((data.params?.pagination?.totalItems || 0) / 24)
       );
 
-      // SEO
       setSeo({
         title: data.titlePage || `Kết quả: ${kw}`,
         description: data.seoOnPage?.descriptionHead || "",
@@ -69,16 +83,16 @@ function Search() {
       }
 
     } catch (error) {
-      console.error(error);
+      console.error("Search error:", error);
       setResults([]);
     } finally {
       setLoading(false);
     }
   }, [navigate]);
 
-  // ============================
+  // =========================
   // LOAD FROM URL
-  // ============================
+  // =========================
   useEffect(() => {
     if (queryKeyword) {
       handleSearch(currentPage, queryKeyword, false);
@@ -86,9 +100,9 @@ function Search() {
     }
   }, [queryKeyword, currentPage]);
 
-  // ============================
+  // =========================
   // SUGGESTION (DEBOUNCE)
-  // ============================
+  // =========================
   useEffect(() => {
     const fetchSuggestions = async () => {
       if (keyword.length < 2) {
@@ -103,10 +117,7 @@ function Search() {
 
         const items = res.data.data.items || [];
 
-        setSuggestions(
-          items.slice(0, 5).map((m) => m.name) // limit 5
-        );
-
+        setSuggestions(items.slice(0, 5).map((m) => m.name));
       } catch {
         setSuggestions([]);
       }
@@ -116,9 +127,9 @@ function Search() {
     return () => clearTimeout(debounce);
   }, [keyword]);
 
-  // ============================
+  // =========================
   // EVENTS
-  // ============================
+  // =========================
   const onSearchClick = () => {
     if (keyword.trim()) {
       handleSearch(1, keyword);
@@ -131,15 +142,17 @@ function Search() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  // ============================
+  // =========================
   // RENDER
-  // ============================
+  // =========================
   return (
     <Container sx={{ mt: 4, mb: 5 }}>
       <Helmet>
         <title>{`${seo.title} ${currentPage > 1 ? `- Trang ${currentPage}` : ""}`}</title>
         <meta name="description" content={seo.description} />
-        {seo.image && <meta property="og:image" content={`https://img.ophim.live/${seo.image}`} />}
+        {seo.image && (
+          <meta property="og:image" content={`${cdnImage}/${seo.image}`} />
+        )}
       </Helmet>
 
       {/* SEARCH BAR */}
@@ -204,7 +217,7 @@ function Search() {
                       <CardMedia
                         component="img"
                         height="280"
-                        image={`https://img.ophim.live/${movie.poster_url}`}
+                        image={getImageUrl(movie)}
                         alt={movie.name}
                         sx={{ objectFit: "cover" }}
                         onError={(e) => (e.target.src = "/no-image.jpg")}
