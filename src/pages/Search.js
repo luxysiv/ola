@@ -31,7 +31,6 @@ function Search() {
   const [totalPages, setTotalPages] = useState(1);
   const [cdnImage, setCdnImage] = useState("");
 
-  // SEO
   const [seo, setSeo] = useState({
     title: "Tìm kiếm phim",
     description: "",
@@ -41,13 +40,14 @@ function Search() {
   // =========================
   // HELPER IMAGE
   // =========================
-  const getImageUrl = (movie) => {
-    if (!cdnImage) return "/no-image.jpg";
+  const buildImageUrl = (url) => {
+    if (!url) return "/no-image.jpg";
 
-    if (movie.poster_url) return `${cdnImage}/${movie.poster_url}`;
-    if (movie.thumb_url) return `${cdnImage}/${movie.thumb_url}`;
+    // Nếu đã là link đầy đủ → dùng luôn
+    if (url.startsWith("http")) return url;
 
-    return "/no-image.jpg";
+    // Nếu chưa có → nối CDN
+    return cdnImage ? `${cdnImage}/${url}` : "/no-image.jpg";
   };
 
   // =========================
@@ -143,19 +143,30 @@ function Search() {
   };
 
   // =========================
+  // SEO IMAGE FIX
+  // =========================
+  const getSeoImage = () => {
+    if (!seo.image) return "";
+    if (seo.image.startsWith("http")) return seo.image;
+    return cdnImage ? `${cdnImage}/${seo.image}` : "";
+  };
+
+  // =========================
   // RENDER
   // =========================
   return (
     <Container sx={{ mt: 4, mb: 5 }}>
       <Helmet>
-        <title>{`${seo.title} ${currentPage > 1 ? `- Trang ${currentPage}` : ""}`}</title>
+        <title>
+          {`${seo.title} ${currentPage > 1 ? `- Trang ${currentPage}` : ""}`}
+        </title>
         <meta name="description" content={seo.description} />
-        {seo.image && (
-          <meta property="og:image" content={`${cdnImage}/${seo.image}`} />
+        {getSeoImage() && (
+          <meta property="og:image" content={getSeoImage()} />
         )}
       </Helmet>
 
-      {/* SEARCH BAR */}
+      {/* SEARCH */}
       <Box display="flex" gap={1} justifyContent="center" mb={4}>
         <Autocomplete
           freeSolo
@@ -174,7 +185,6 @@ function Search() {
             <TextField
               {...params}
               label="Nhập tên phim..."
-              variant="outlined"
               size="small"
             />
           )}
@@ -217,7 +227,7 @@ function Search() {
                       <CardMedia
                         component="img"
                         height="280"
-                        image={getImageUrl(movie)}
+                        image={buildImageUrl(movie.poster_url || movie.thumb_url)}
                         alt={movie.name}
                         sx={{ objectFit: "cover" }}
                         onError={(e) => (e.target.src = "/no-image.jpg")}
