@@ -20,8 +20,7 @@ import {
 function Search() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  
-  // Lấy từ khóa và trang từ URL
+
   const queryKeyword = searchParams.get("tu-khoa") || "";
   const currentPage = parseInt(searchParams.get("trang") || "1", 10);
 
@@ -30,175 +29,200 @@ function Search() {
   const [suggestions, setSuggestions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [totalPages, setTotalPages] = useState(1);
+  const [cdnImage, setCdnImage] = useState("");
 
-  // SEO Data
-  const [seoTitle, setSeoTitle] = useState("Tìm kiếm phim");
+  const [seo, setSeo] = useState({
+    title: "",
+    description: "",
+    image: ""
+  });
 
-  const handleSearch = useCallback(async (pageNum, kw) => {
-    if (!kw || !kw.trim()) return;
+  // =========================
+  // HELPER IMAGE (FIX CHUẨN)
+  // =========================
+  const buildImageUrl = (url) => {
+    if (!url) return "/no-image.jpg";
+
+    // Nếu đã có http
+    if (url.startsWith("http")) return url;
+
+    // remove "/" đầu nếu có
+    const cleanUrl = url.replace(/^\/+/, "");
+
+    return cdnImage ? `${cdnImage}/${cleanUrl}` : "/no-image.jpg";
+  };
+
+  // =========================
+  // SEARCH API
+  // =========================
+  const handleSearch = useCallback(async (pageNum, kw, shouldNavigate = true) => {
+    if (!kw?.trim()) return;
+
     setLoading(true);
+
     try {
       const res = await axios.get(
         `https://phimapi.com/v1/api/tim-kiem?keyword=${encodeURIComponent(kw)}&page=${pageNum}`
       );
+
       const data = res.data.data;
+
       setResults(data.items || []);
+      setCdnImage(data.APP_DOMAIN_CDN_IMAGE || "");
+
       setTotalPages(data.params?.pagination?.totalPages || 1);
-      setSeoTitle(data.titlePage || `Kết quả tìm kiếm: ${kw}`);
-      
-      // Đồng bộ URL
-      navigate(`/tim-kiem?tu-khoa=${encodeURIComponent(kw)}&trang=${pageNum}`);
-    } catch (error) {
-      console.error("Error fetching data:", error);
+
+      setSeo({
+        title: data.titlePage || `Kết quả: ${kw}`,
+        description: data.seoOnPage?.descriptionHead || "",
+        image: data.seoOnPage?.og_image?.[0] || ""
+      });
+
+      if (shouldNavigate) {
+        navigate(`/tim-kiem?tu-khoa=${encodeURIComponent(kw)}&trang=${pageNum}`);
+      }
+
+    } catch (err) {
+      console.error(err);
       setResults([]);
     } finally {
       setLoading(false);
     }
   }, [navigate]);
 
-  // Trigger tìm kiếm khi URL thay đổi (nhấn nút Tìm hoặc chuyển trang)
+  // =========================
+  // LOAD URL
+  // =========================
   useEffect(() => {
     if (queryKeyword) {
-      handleSearch(currentPage, queryKeyword);
-      setKeyword(queryKeyword); // Giữ text trong ô input đúng với URL
+      handleSearch(currentPage, queryKeyword, false);
+      setKeyword(queryKeyword);
     }
-  }, [queryKeyword, currentPage, handleSearch]);
+  }, [queryKeyword, currentPage]);
 
-  // Gợi ý khi gõ (Debounce)
+  // =========================
+  // AUTOCOMPLETE
+  // =========================
   useEffect(() => {
-    const fetchSuggestions = async () => {
-      if (keyword.length < 2) {
-        setSuggestions([]);
-        return;
-      }
+    const fetchSuggest = async () => {
+      if (keyword.length < 2) return setSuggestions([]);
+
       try {
         const res = await axios.get(
           `https://phimapi.com/v1/api/tim-kiem?keyword=${encodeURIComponent(keyword)}`
         );
+
         const items = res.data.data.items || [];
-        setSuggestions(items.map((m) => m.name));
-      } catch (error) {
+
+        setSuggestions(items.slice(0, 5).map((i) => i.name));
+      } catch {
         setSuggestions([]);
       }
     };
 
-    const delayDebounce = setTimeout(fetchSuggestions, 400);
-    return () => clearTimeout(delayDebounce);
+    const debounce = setTimeout(fetchSuggest, 400);
+    return () => clearTimeout(debounce);
   }, [keyword]);
 
-  const onSearchClick = () => {
+  // =========================
+  // SEO IMAGE FIX
+  // =========================
+  const getSeoImage = () => {
+    if (!seo.image) return "";
+
+    if (seo.image.startsWith("http")) return seo.image;
+
+    const clean = seo.image.replace(/^\/+/, "");
+
+    return cdnImage ? `${cdnImage}/${clean}` : "";
+  };
+
+  // =========================
+  // EVENTS
+  // =========================
+  const onSearch = () => {
     if (keyword.trim()) {
       handleSearch(1, keyword);
+      window.scrollTo({ top: 0, behavior: "smooth" });
     }
   };
 
-  const handlePageChange = (event, value) => {
-    handleSearch(value, queryKeyword);
+  const onPageChange = (e, page) => {
+    handleSearch(page, queryKeyword);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
+  // =========================
+  // RENDER
+  // =========================
   return (
-    <Container sx={{ mt: 4, mb: 5 }}>
+    <Container sx={{ mt: 4 }}>
       <Helmet>
-        <title>{`${seoTitle} ${currentPage > 1 ? `- Trang ${currentPage}` : ""}`}</title>
+        <title>{seo.title}</title>
+        <meta name="description" content={seo.description} />
+        {getSeoImage() && <meta property="og:image" content={getSeoImage()} />}
       </Helmet>
 
-      <Box display="flex" gap={1} justifyContent="center" mb={4}>
+      {/* SEARCH */}
+      <Box display="flex" gap={1} mb={4}>
         <Autocomplete
           freeSolo
           options={suggestions}
           inputValue={keyword}
-          onInputChange={(e, newValue) => setKeyword(newValue)}
-          onKeyPress={(e) => e.key === 'Enter' && onSearchClick()}
-          sx={{ width: "70%" }}
+          onInputChange={(e, val) => setKeyword(val)}
+          onKeyDown={(e) => e.key === "Enter" && onSearch()}
+          sx={{ flex: 1 }}
           renderInput={(params) => (
-            <TextField {...params} label="Nhập tên phim cần tìm..." variant="outlined" size="small" />
+            <TextField {...params} label="Tìm phim..." size="small" />
           )}
         />
-        <Button
-          variant="contained"
-          color="primary"
-          onClick={onSearchClick}
-          sx={{ px: 3 }}
-        >
+
+        <Button variant="contained" onClick={onSearch}>
           Tìm
         </Button>
       </Box>
 
+      {/* LOADING */}
       {loading ? (
-        <Box display="flex" justifyContent="center" mt={10}>
+        <Box textAlign="center" mt={10}>
           <CircularProgress />
         </Box>
       ) : (
         <>
-          {queryKeyword && (
-            <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold', mb: 3 }}>
-              {seoTitle} (Trang {currentPage})
-            </Typography>
-          )}
-
           <Grid container spacing={2}>
-            {results.length > 0 ? (
-              results.map((movie) => (
-                <Grid item xs={6} sm={4} md={3} lg={2.4} key={movie._id}>
-                  <Card
-                    sx={{
-                      height: '100%',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      transition: "transform 0.3s",
-                      "&:hover": { transform: "scale(1.03)", boxShadow: 6 }
-                    }}
-                  >
-                    <Link to={`/phim/${movie.slug}`} style={{ textDecoration: "none" }}>
-                      <CardMedia
-                        component="img"
-                        height="280"
-                        image={`https://phimimg.com/${movie.poster_url}`}
-                        alt={movie.name}
-                        sx={{ objectFit: 'cover' }}
-                        onError={(e) => { e.target.src = "/no-image.jpg"; }}
-                      />
-                      <CardContent sx={{ p: 1.5 }}>
-                        <Typography
-                          variant="subtitle2"
-                          sx={{
-                            fontWeight: 'bold',
-                            color: 'text.primary',
-                            height: 40,
-                            overflow: 'hidden',
-                            display: '-webkit-box',
-                            WebkitLineClamp: 2,
-                            WebkitBoxOrient: 'vertical'
-                          }}
-                        >
-                          {movie.name}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 1 }}>
-                          {movie.year} • {movie.quality}
-                        </Typography>
-                      </CardContent>
-                    </Link>
-                  </Card>
-                </Grid>
-              ))
-            ) : queryKeyword && !loading ? (
-              <Box sx={{ width: '100%', textAlign: 'center', mt: 5 }}>
-                <Typography color="text.secondary">Không tìm thấy phim nào phù hợp với từ khóa.</Typography>
-              </Box>
-            ) : null}
+            {results.map((movie) => (
+              <Grid item xs={6} sm={4} md={3} lg={2} key={movie._id}>
+                <Card>
+                  <Link to={`/phim/${movie.slug}`}>
+                    <CardMedia
+                      component="img"
+                      height="280"
+                      image={buildImageUrl(movie.poster_url || movie.thumb_url)}
+                      alt={movie.name}
+                      onError={(e) => (e.target.src = "/no-image.jpg")}
+                    />
+                  </Link>
+
+                  <CardContent>
+                    <Typography variant="subtitle2" noWrap>
+                      {movie.name}
+                    </Typography>
+                    <Typography variant="caption">
+                      {movie.year} • {movie.quality}
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+            ))}
           </Grid>
 
+          {/* PAGINATION */}
           {totalPages > 1 && (
-            <Box display="flex" justifyContent="center" mt={5}>
+            <Box mt={4} display="flex" justifyContent="center">
               <Pagination
                 count={totalPages}
                 page={currentPage}
-                onChange={handlePageChange}
-                color="primary"
-                size="large"
-                showFirstButton
-                showLastButton
+                onChange={onPageChange}
               />
             </Box>
           )}
