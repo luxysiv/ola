@@ -3,149 +3,137 @@ import axios from "axios";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import {
-  Container,
-  Typography,
-  Grid,
-  Card,
-  CardMedia,
-  CardContent,
-  CircularProgress,
-  Box,
-  Pagination,
+  Container, Typography, Grid, CircularProgress, Box,
+  Pagination, Chip, alpha, Skeleton
 } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
+import PlayCircleFilledIcon from "@mui/icons-material/PlayCircleFilled";
+import WhatshotIcon from "@mui/icons-material/Whatshot";
 
-function LatestPage() {
+const getPoster = (url) => {
+  if (!url) return "/no-image.jpg";
+  return url.startsWith("http") ? url : `https://phimimg.com/${url}`;
+};
+
+function MovieCard({ m }) {
+  const theme = useTheme();
+  return (
+    <Link to={`/phim/${m.slug}`} style={{ textDecoration: "none", color: "inherit" }}>
+      <Box sx={{
+        transition: "transform 0.2s",
+        "&:hover": { transform: "translateY(-4px)" },
+        "&:hover .play-icon": { opacity: 1 },
+        "&:hover .overlay": { opacity: 1 },
+      }}>
+        <Box sx={{ position: "relative", borderRadius: 2, overflow: "hidden" }}>
+          <Box
+            component="img"
+            src={getPoster(m.poster_url)}
+            alt={m.name}
+            onError={(e) => (e.target.src = "/no-image.jpg")}
+            sx={{ width: "100%", height: { xs: 200, sm: 240, md: 260 }, objectFit: "cover", display: "block" }}
+          />
+          <Box className="overlay" sx={{
+            position: "absolute", inset: 0, opacity: 0, transition: "opacity 0.2s",
+            background: "linear-gradient(to top, rgba(0,0,0,0.75) 0%, transparent 50%)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+          }}>
+            <PlayCircleFilledIcon className="play-icon" sx={{ color: "#fff", fontSize: 44 }} />
+          </Box>
+          {m.quality && (
+            <Box sx={{
+              position: "absolute", top: 6, right: 6,
+              bgcolor: "primary.main", color: "#fff",
+              fontSize: 10, fontWeight: 700, px: 0.8, py: 0.2, borderRadius: 1,
+            }}>
+              {m.quality}
+            </Box>
+          )}
+          {m.episode_current && m.episode_current !== "Full" && (
+            <Box sx={{
+              position: "absolute", bottom: 6, left: 6,
+              bgcolor: "rgba(0,0,0,0.75)", color: "#fff",
+              fontSize: 10, fontWeight: 600, px: 0.8, py: 0.2, borderRadius: 1,
+            }}>
+              {m.episode_current}
+            </Box>
+          )}
+        </Box>
+        <Box sx={{ pt: 1 }}>
+          <Typography variant="subtitle2" fontWeight={600} sx={{
+            overflow: "hidden", display: "-webkit-box",
+            WebkitLineClamp: 2, WebkitBoxOrient: "vertical", lineHeight: 1.4, fontSize: 13,
+          }}>
+            {m.name}
+          </Typography>
+          <Typography variant="caption" color="text.secondary" sx={{ fontSize: 11 }}>
+            {m.year}{m.lang ? ` • ${m.lang}` : ""}
+          </Typography>
+        </Box>
+      </Box>
+    </Link>
+  );
+}
+
+export default function LatestPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-
   const [movies, setMovies] = useState([]);
   const [loading, setLoading] = useState(false);
   const [totalPages, setTotalPages] = useState(1);
-
-  // Lấy số trang hiện tại từ URL (?trang=x)
   const currentPage = parseInt(searchParams.get("trang") || "1", 10);
 
-  const handleFetch = useCallback(async (pageNum) => {
+  const fetch = useCallback(async (page) => {
     setLoading(true);
-
     try {
-      const res = await axios.get(
-        `https://phimapi.com/danh-sach/phim-moi-cap-nhat-v3?page=${pageNum}`
-      );
-
-      // Lưu ý: Cấu trúc JSON của phim-moi-cap-nhat-v3 nằm trực tiếp ở res.data
-      const items = res.data.items || [];
-      const pagination = res.data.pagination || {};
-
-      setMovies(items);
-      setTotalPages(pagination.totalPages || 1);
-    } catch (error) {
-      console.error("Lỗi fetch API Phim mới:", error);
-      setMovies([]);
-    } finally {
-      setLoading(false);
-    }
+      const res = await axios.get(`https://phimapi.com/danh-sach/phim-moi-cap-nhat-v3?page=${page}`);
+      setMovies(res.data.items || []);
+      setTotalPages(res.data.pagination?.totalPages || 1);
+    } catch { setMovies([]); }
+    finally { setLoading(false); }
   }, []);
 
-  // Gọi API mỗi khi số trang thay đổi
-  useEffect(() => {
-    handleFetch(currentPage);
-  }, [currentPage, handleFetch]);
-
-  const handlePageChange = (event, value) => {
-    // Điều hướng URL để useEffect kích hoạt lại
-    navigate(`/phim-moi-cap-nhat?trang=${value}`);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
+  useEffect(() => { fetch(currentPage); }, [currentPage, fetch]);
 
   return (
-    <Container sx={{ mt: 3, mb: 5 }}>
+    <Container maxWidth="lg" sx={{ pt: 4, pb: 6 }}>
       <Helmet>
-        <title>{`Phim Mới Cập Nhật - Trang ${currentPage}`}</title>
-        <meta name="description" content="Danh sách phim mới cập nhật bản đẹp, vietsub nhanh nhất." />
+        <title>{`Phim Mới Cập Nhật – Trang ${currentPage} | Hdophim`}</title>
       </Helmet>
 
-      <Typography variant="h5" gutterBottom sx={{ fontWeight: "bold", mb: 3 }}>
-        🔥 Phim mới cập nhật (Trang {currentPage})
-      </Typography>
+      <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 3 }}>
+        <WhatshotIcon sx={{ color: "primary.main" }} />
+        <Typography variant="h5" fontWeight={700}>Phim mới cập nhật</Typography>
+        {currentPage > 1 && (
+          <Typography variant="body2" color="text.secondary">– Trang {currentPage}</Typography>
+        )}
+      </Box>
 
       {loading ? (
-        <Box sx={{ textAlign: "center", mt: 10, mb: 10 }}>
-          <CircularProgress />
-        </Box>
+        <Grid container spacing={2}>
+          {[...Array(20)].map((_, i) => (
+            <Grid item xs={6} sm={4} md={3} lg={2} key={i}>
+              <Skeleton variant="rectangular" height={240} sx={{ borderRadius: 2 }} animation="wave" />
+              <Skeleton variant="text" sx={{ mt: 1 }} animation="wave" />
+            </Grid>
+          ))}
+        </Grid>
       ) : (
         <>
-          <Grid container spacing={2}>
-            {movies.length > 0 ? (
-              movies.map((m) => (
-                <Grid item xs={6} sm={4} md={3} lg={2.4} key={m._id}>
-                  <Card
-                    sx={{
-                      height: "100%",
-                      display: "flex",
-                      flexDirection: "column",
-                      transition: "transform 0.3s",
-                      "&:hover": { transform: "scale(1.03)", boxShadow: 6 },
-                    }}
-                  >
-                    <Link to={`/phim/${m.slug}`} style={{ textDecoration: "none" }}>
-                      <CardMedia
-                        component="img"
-                        height="280"
-                        // Kiểm tra nếu poster_url là link tuyệt đối thì dùng luôn, không thì nối domain
-                        image={
-                          m.poster_url?.startsWith("http")
-                            ? m.poster_url
-                            : `https://phimimg.com/${m.poster_url}`
-                        }
-                        alt={m.name}
-                        sx={{ objectFit: "cover" }}
-                        onError={(e) => {
-                          e.target.src = "/no-image.jpg";
-                        }}
-                      />
-                    </Link>
-
-                    <CardContent sx={{ flexGrow: 1, p: 1.5 }}>
-                      <Typography
-                        variant="subtitle2"
-                        sx={{
-                          fontWeight: "bold",
-                          height: 40,
-                          overflow: "hidden",
-                          display: "-webkit-box",
-                          WebkitLineClamp: 2,
-                          WebkitBoxOrient: "vertical",
-                          color: "text.primary",
-                        }}
-                      >
-                        {m.name}
-                      </Typography>
-
-                      <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 1 }}>
-                        {m.year} • {m.quality} • {m.episode_current || "Full"}
-                      </Typography>
-                    </CardContent>
-                  </Card>
-                </Grid>
-              ))
-            ) : (
-              <Grid item xs={12}>
-                <Typography align="center">Không tìm thấy phim nào.</Typography>
+          <Grid container spacing={{ xs: 1.5, sm: 2 }}>
+            {movies.map((m) => (
+              <Grid item xs={6} sm={4} md={3} lg={2} key={m._id}>
+                <MovieCard m={m} />
               </Grid>
-            )}
+            ))}
           </Grid>
 
           {totalPages > 1 && (
             <Box display="flex" justifyContent="center" mt={5}>
               <Pagination
-                count={totalPages}
-                page={currentPage}
-                onChange={handlePageChange}
-                color="primary"
-                size="large"
-                showFirstButton
-                showLastButton
+                count={totalPages} page={currentPage}
+                onChange={(_, v) => { navigate(`/phim-moi-cap-nhat?trang=${v}`); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+                color="primary" size="large" showFirstButton showLastButton
               />
             </Box>
           )}
@@ -154,5 +142,3 @@ function LatestPage() {
     </Container>
   );
 }
-
-export default LatestPage;
