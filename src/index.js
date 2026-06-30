@@ -1,4 +1,4 @@
-import React, { useMemo, useState, createContext, useContext } from "react";
+import React, { useMemo, useState, useEffect, createContext, useContext } from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
 
@@ -8,12 +8,34 @@ import useMediaQuery from "@mui/material/useMediaQuery";
 
 export const ColorModeContext = createContext({ toggleColorMode: () => {} });
 
+const STORAGE_KEY = "hdophim-color-mode";
+
 function Root() {
   const prefersDarkMode = useMediaQuery("(prefers-color-scheme: dark)");
-  const [mode, setMode] = useState(prefersDarkMode ? "dark" : "dark"); // default dark for movie site
+
+  // Nếu người dùng đã từng chọn thủ công, ưu tiên lựa chọn đó.
+  // Nếu chưa, mặc định theo hệ thống.
+  const [mode, setMode] = useState(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved === "light" || saved === "dark") return saved;
+    return prefersDarkMode ? "dark" : "light";
+  });
+
+  // Khi hệ thống đổi sáng/tối mà người dùng chưa từng tự chọn, tự động cập nhật theo hệ thống.
+  useEffect(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (!saved) {
+      setMode(prefersDarkMode ? "dark" : "light");
+    }
+  }, [prefersDarkMode]);
 
   const colorMode = useMemo(() => ({
-    toggleColorMode: () => setMode((prev) => (prev === "light" ? "dark" : "light")),
+    toggleColorMode: () =>
+      setMode((prev) => {
+        const next = prev === "light" ? "dark" : "light";
+        localStorage.setItem(STORAGE_KEY, next); // từ giờ ưu tiên lựa chọn thủ công
+        return next;
+      }),
     mode,
   }), [mode]);
 
