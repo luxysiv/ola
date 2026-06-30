@@ -1,66 +1,14 @@
 import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import {
-  Container, TextField, Button, Grid, Typography,
-  Pagination, Autocomplete, CircularProgress, Box,
-  InputAdornment, Skeleton, alpha
+  Container, TextField, Button, Typography,
+  Pagination, Autocomplete, Box, InputAdornment
 } from "@mui/material";
-import { useTheme } from "@mui/material/styles";
 import SearchIcon from "@mui/icons-material/Search";
-import PlayCircleFilledIcon from "@mui/icons-material/PlayCircleFilled";
-
-const buildImageUrl = (url, cdn) => {
-  if (!url) return "/no-image.jpg";
-  if (url.startsWith("http")) return url;
-  return cdn ? `${cdn}/${url.replace(/^\/+/, "")}` : "/no-image.jpg";
-};
-
-function MovieCard({ movie, cdn }) {
-  return (
-    <Link to={`/phim/${movie.slug}`} style={{ textDecoration: "none", color: "inherit" }}>
-      <Box sx={{
-        transition: "transform 0.2s",
-        "&:hover": { transform: "translateY(-4px)" },
-        "&:hover .play-icon": { opacity: 1 },
-        "&:hover .overlay": { opacity: 1 },
-      }}>
-        <Box sx={{ position: "relative", borderRadius: 2, overflow: "hidden" }}>
-          <Box
-            component="img"
-            src={buildImageUrl(movie.poster_url || movie.thumb_url, cdn)}
-            alt={movie.name}
-            onError={(e) => (e.target.src = "/no-image.jpg")}
-            sx={{ width: "100%", height: { xs: 200, sm: 250, md: 280 }, objectFit: "cover", display: "block" }}
-          />
-          <Box className="overlay" sx={{
-            position: "absolute", inset: 0, opacity: 0, transition: "opacity 0.2s",
-            background: "rgba(0,0,0,0.5)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-          }}>
-            <PlayCircleFilledIcon className="play-icon" sx={{ color: "#fff", fontSize: 48 }} />
-          </Box>
-          {movie.quality && (
-            <Box sx={{
-              position: "absolute", top: 6, right: 6,
-              bgcolor: "primary.main", color: "#fff",
-              fontSize: 10, fontWeight: 700, px: 0.8, py: 0.2, borderRadius: 1,
-            }}>
-              {movie.quality}
-            </Box>
-          )}
-        </Box>
-        <Box sx={{ pt: 1 }}>
-          <Typography variant="subtitle2" noWrap fontWeight={600} sx={{ fontSize: 13 }}>{movie.name}</Typography>
-          <Typography variant="caption" color="text.secondary" sx={{ fontSize: 11 }}>
-            {movie.year}{movie.quality ? ` • ${movie.quality}` : ""}
-          </Typography>
-        </Box>
-      </Box>
-    </Link>
-  );
-}
+import MovieCard from "../components/MovieCard";
+import MovieGrid from "../components/MovieGrid";
 
 export default function Search() {
   const navigate = useNavigate();
@@ -108,11 +56,8 @@ export default function Search() {
 
   return (
     <Container maxWidth="lg" sx={{ pt: 4, pb: 6 }}>
-      <Helmet>
-        <title>{seoTitle} | Hdophim</title>
-      </Helmet>
+      <Helmet><title>{seoTitle} | Hdophim</title></Helmet>
 
-      {/* Search bar */}
       <Box sx={{ maxWidth: 600, mx: "auto", mb: 5 }}>
         <Typography variant="h5" fontWeight={700} textAlign="center" sx={{ mb: 2.5 }}>
           Tìm kiếm phim
@@ -145,36 +90,21 @@ export default function Search() {
         </Box>
       </Box>
 
-      {/* Results */}
       {loading ? (
-        <Grid container spacing={2}>
-          {[...Array(12)].map((_, i) => (
-            <Grid item xs={6} sm={4} md={3} lg={2} key={i}>
-              <Skeleton variant="rectangular" height={250} sx={{ borderRadius: 2 }} animation="wave" />
-              <Skeleton variant="text" sx={{ mt: 1 }} animation="wave" />
-            </Grid>
-          ))}
-        </Grid>
+        <MovieGrid loading />
       ) : results.length > 0 ? (
         <>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            {seoTitle}
-          </Typography>
-          <Grid container spacing={{ xs: 1.5, sm: 2 }}>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>{seoTitle}</Typography>
+          <MovieGrid loading={false}>
             {results.map((movie) => (
-              <Grid item xs={6} sm={4} md={3} lg={2} key={movie._id}>
-                <MovieCard movie={movie} cdn={cdn} />
-              </Grid>
+              <MovieCard key={movie._id} movie={movie} to={`/phim/${movie.slug}`} cdn={cdn} />
             ))}
-          </Grid>
+          </MovieGrid>
           {totalPages > 1 && (
             <Box mt={5} display="flex" justifyContent="center">
               <Pagination
                 count={totalPages} page={currentPage} color="primary" size="large"
-                onChange={(_, v) => {
-                  handleSearch(v, queryKeyword);
-                  window.scrollTo({ top: 0, behavior: "smooth" });
-                }}
+                onChange={(_, v) => { handleSearch(v, queryKeyword); window.scrollTo({ top: 0, behavior: "smooth" }); }}
               />
             </Box>
           )}

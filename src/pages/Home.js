@@ -4,9 +4,8 @@ import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import {
   Container, Typography, Box, Card, CardMedia, CardContent,
-  Button, Skeleton, Chip, alpha
+  Button, Skeleton, Chip
 } from "@mui/material";
-import { useTheme } from "@mui/material/styles";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay, Pagination, Navigation, EffectFade } from "swiper/modules";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
@@ -19,11 +18,7 @@ import "swiper/css/navigation";
 import "swiper/css/effect-fade";
 
 import { getHistory } from "../utils/history";
-
-const getPosterUrl = (url) => {
-  if (!url) return "/no-image.jpg";
-  return url.startsWith("https://") ? url : `https://phimimg.com/${url}`;
-};
+import MovieCard, { getPosterUrl } from "../components/MovieCard";
 
 const normalize = (str = "") =>
   str.toString().toLowerCase()
@@ -34,8 +29,8 @@ const normalize = (str = "") =>
 /* ---- Skeleton ---- */
 function CardSkeleton() {
   return (
-    <Box sx={{ minWidth: 140, flexShrink: 0 }}>
-      <Skeleton variant="rectangular" height={210} sx={{ borderRadius: 2 }} animation="wave" />
+    <Box>
+      <Skeleton variant="rectangular" sx={{ width: "100%", aspectRatio: "2 / 3", borderRadius: 2 }} animation="wave" />
       <Skeleton variant="text" sx={{ mt: 1 }} animation="wave" />
       <Skeleton variant="text" width="60%" animation="wave" />
     </Box>
@@ -44,7 +39,6 @@ function CardSkeleton() {
 
 /* ---- Hero Banner ---- */
 function HeroBanner({ movies }) {
-  const theme = useTheme();
   if (!movies.length) return <Skeleton variant="rectangular" height={520} sx={{ borderRadius: 3, mb: 6 }} animation="wave" />;
 
   return (
@@ -149,64 +143,9 @@ function SectionTitle({ title, link, icon }) {
   );
 }
 
-/* ---- Movie Card ---- */
-function MovieCard({ movie, historyEp }) {
-  const theme = useTheme();
-  return (
-    <Box
-      sx={{
-        minWidth: 148, maxWidth: 148, flexShrink: 0,
-        transition: "transform 0.2s",
-        "&:hover": { transform: "translateY(-4px)" },
-        "&:hover .overlay": { opacity: 1 },
-      }}
-    >
-      <Box sx={{ position: "relative", borderRadius: 2, overflow: "hidden" }}>
-        <Box
-          component="img"
-          src={getPosterUrl(movie.poster_url || movie.poster)}
-          alt={movie.name}
-          onError={(e) => (e.target.src = "/no-image.jpg")}
-          sx={{ width: "100%", height: 210, objectFit: "cover", display: "block" }}
-        />
-        {/* Hover overlay */}
-        <Box className="overlay" sx={{
-          position: "absolute", inset: 0, opacity: 0, transition: "opacity 0.2s",
-          background: "linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 60%)",
-          display: "flex", alignItems: "flex-end", p: 1.5,
-        }}>
-          <PlayCircleFilledIcon sx={{ color: "#fff", fontSize: 32, mx: "auto", mb: 1 }} />
-        </Box>
-        {/* Quality badge */}
-        {movie.quality && (
-          <Box sx={{
-            position: "absolute", top: 6, right: 6,
-            bgcolor: "primary.main", color: "#fff",
-            fontSize: 10, fontWeight: 700, px: 0.8, py: 0.2, borderRadius: 1,
-          }}>
-            {movie.quality}
-          </Box>
-        )}
-      </Box>
-      <Box sx={{ pt: 1 }}>
-        <Typography variant="subtitle2" noWrap fontWeight={600} sx={{ fontSize: 13 }}>
-          {movie.name}
-        </Typography>
-        {historyEp ? (
-          <Typography variant="caption" sx={{ color: "primary.main", fontSize: 11 }}>
-            Đang xem: {historyEp}
-          </Typography>
-        ) : (
-          <Typography variant="caption" sx={{ color: "text.secondary", fontSize: 11 }}>
-            {movie.year}{movie.quality ? ` • ${movie.quality}` : ""}
-          </Typography>
-        )}
-      </Box>
-    </Box>
-  );
-}
+/* ---- Horizontal Row (uses shared MovieCard so it matches every other page) ---- */
+const ROW_CARD_WIDTH = { xs: 124, sm: 148, md: 160 };
 
-/* ---- Horizontal Row ---- */
 function MovieRow({ title, link, movies, isHistory = false, icon, loading }) {
   return (
     <Box sx={{ mb: 5 }}>
@@ -218,15 +157,22 @@ function MovieRow({ title, link, movies, isHistory = false, icon, loading }) {
         "&::-webkit-scrollbar-thumb": { bgcolor: "rgba(229,9,20,0.3)", borderRadius: 2 },
       }}>
         {loading
-          ? [...Array(7)].map((_, i) => <CardSkeleton key={i} />)
+          ? [...Array(7)].map((_, i) => (
+              <Box key={i} sx={{ width: ROW_CARD_WIDTH, flexShrink: 0 }}><CardSkeleton /></Box>
+            ))
           : movies.map((m, i) => {
             const movieLink = isHistory
               ? `/phim/${m.slug}?${normalize(m.server)}&${normalize(m.episode)}`
               : `/phim/${m.slug}`;
             return (
-              <Link key={m._id || i} to={movieLink} style={{ textDecoration: "none", color: "inherit", flexShrink: 0 }}>
-                <MovieCard movie={m} historyEp={isHistory ? m.episode : null} />
-              </Link>
+              <Box key={m._id || i} sx={{ width: ROW_CARD_WIDTH, flexShrink: 0 }}>
+                <MovieCard
+                  movie={m}
+                  to={movieLink}
+                  episodeLabel={isHistory ? `Đang xem: ${m.episode}` : undefined}
+                  bottomBadge={isHistory ? m.episode : undefined}
+                />
+              </Box>
             );
           })}
       </Box>
