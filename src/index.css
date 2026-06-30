@@ -1,16 +1,39 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; }
+
 body {
   margin: 0;
-  font-family: Arial, sans-serif;
+  font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
 }
-nav {
-  background: #222;
-  padding: 10px;
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(229,9,20,0.45); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #e50914; }
+
+/* Horizontal scroll snapping for swipe */
+.scroll-row { scroll-snap-type: x mandatory; }
+.scroll-row > * { scroll-snap-align: start; }
+
+a { text-decoration: none; color: inherit; }
+
+/* Swiper tweaks */
+.swiper-pagination-bullet-active { background: #e50914 !important; }
+.swiper-button-prev, .swiper-button-next {
+  color: #e50914 !important;
+  background: rgba(0,0,0,0.5);
+  border-radius: 50%;
+  width: 36px !important;
+  height: 36px !important;
 }
-nav a {
-  color: white;
-  margin-right: 10px;
-  text-decoration: none;
-}
-nav a:hover {
-  text-decoration: underline;
+.swiper-button-prev::after, .swiper-button-next::after { font-size: 14px !important; }
+
+/* Skeleton pulse override */
+@keyframes skeletonPulse {
+  0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; }
 }
